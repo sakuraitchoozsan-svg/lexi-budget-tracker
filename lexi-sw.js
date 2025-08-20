@@ -1,12 +1,14 @@
 // lexi-sw.js - Service Worker for Lexi’s Budget Tracker 🐾
-const CACHE_NAME = "lexi-cache-v2";
+const CACHE_NAME = "lexi-cache-v3";
 const OFFLINE_URL = "/index.html";
 
 const PRECACHE_ASSETS = [
   "/",
   "/index.html",
   "/manifest.json",
-  "/assets/kitten-chime.mp3"
+  "/assets/kitten-chime.mp3",
+  "/assets/icon-192.png",
+  "/assets/icon-512.png"
 ];
 
 // ===== Install =====
@@ -52,10 +54,9 @@ self.addEventListener("sync", (event) => {
   if (event.tag === "sync-data") {
     event.waitUntil(
       self.registration.showNotification("🐾 Lexi Tracker", {
-        body: "Your data was synced successfully!",
+        body: "Your data has been synced!",
         icon: "/assets/icon-192.png",
-        badge: "/assets/icon-192.png",
-        sound: "/assets/kitten-chime.mp3"
+        badge: "/assets/icon-192.png"
       })
     );
   }
