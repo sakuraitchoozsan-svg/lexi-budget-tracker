@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Budget Tracker — Pastel Pink Kitten Lover</title>
+  <title>Lexi — Budget Tracker (Pastel Pink Kitten)</title>
 
   <!-- Tailwind CDN -->
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
@@ -47,61 +47,118 @@
     @media(min-width:768px){ .md-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem } }
     .modal { transform-origin:center center; animation:popIn .18s ease; }
     @keyframes popIn { from { transform: scale(.98); opacity: 0 } to { transform: scale(1); opacity:1 } }
+    /* small highlight for due */
+    .due-soon { box-shadow: 0 0 0 4px rgba(255,150,190,0.12); border-color: #ffb3d6;}
   </style>
 </head>
 <body>
 
-  <!-- Kitten chime audio (tiny placeholder) -->
+  <!-- Kitten chime audio -->
   <audio id="kitten-chime" preload="auto">
     <source src="data:audio/mp3;base64,//uQZAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAACcQAAACAAABkYXRhAAAAAA==" type="audio/mp3">
   </audio>
 
   <header class="flex items-center justify-between">
     <div>
-      <h1 class="text-2xl font-bold text-pink-600">Budget Tracker — Pastel Pink Kitten</h1>
-      <div class="flex items-center gap-3 mt-1">
-        <div id="manila-clock" class="text-lg font-semibold text-gray-700"></div>
-        <div id="manila-date" class="text-sm text-gray-500"></div>
+      <h1 class="text-2xl font-bold text-pink-600">Budget Tracker — Lexi 🐾</h1>
+      <div class="flex items-center gap-4 mt-1">
+        <div>
+          <div id="manila-clock" class="text-lg font-semibold text-gray-700"></div>
+          <div id="manila-date" class="text-sm text-gray-500"></div>
+        </div>
+        <div id="motivational-quote" class="quote mt-1">Keep going, Lexi! 🐾</div>
       </div>
-      <div id="motivational-quote" class="quote mt-1">Keep going, Lexi! 🐾</div>
     </div>
-    <div class="text-right">
-      <div class="chip">Cute & Helpful</div>
-      <div class="small mt-2">Timezone: Asia/Manila (PHT)</div>
+
+    <!-- Dashboard mini-profile quick-edit (moved into Dashboard full; here a quick view) -->
+    <div class="text-right small">
+      <div class="chip">Pastel Pink Kitten</div>
+      <div id="mini-profile" class="mt-2">
+        <div id="mini-name">Lexi N. Tamot</div>
+        <div id="mini-email" class="text-xs text-gray-500">tamotnicko1999@gmail.com</div>
+      </div>
     </div>
   </header>
 
   <main class="p-4 max-w-6xl mx-auto">
-    <!-- Top tabs -->
+    <!-- Tabs -->
     <nav class="flex gap-2 mb-4">
       <button class="tab-btn active" data-panel="panel-dashboard">Dashboard</button>
       <button class="tab-btn" data-panel="panel-transactions">Income & Expenses</button>
       <button class="tab-btn" data-panel="panel-savings">Savings & Goals</button>
-      <button class="tab-btn" data-panel="panel-salary">Jobs</button>
+      <button class="tab-btn" data-panel="panel-salary">Jobs (Live Salary Tracker)</button>
       <button class="tab-btn" data-panel="panel-calendar">Calendar</button>
-      <button class="tab-btn" data-panel="panel-profile">Profile</button>
+      <button class="tab-btn" data-panel="panel-quick-setup">Quick Setup</button>
     </nav>
 
-    <!-- Dashboard -->
+    <!-- DASHBOARD -->
     <section id="panel-dashboard" class="card">
       <div class="md-grid-3">
         <div>
           <h3 class="font-medium">Overview</h3>
           <div id="panel-summary" class="mt-2 small"></div>
+          <div class="mt-2">
+            <label class="small">Default avg workdays / month</label>
+            <input id="setting-workdays" type="number" class="border rounded px-2 py-1 small" value="22" style="width:80px"/>
+          </div>
         </div>
+
         <div>
-          <h3 class="font-medium">Upcoming</h3>
-          <div id="panel-next-bills" class="mt-2 small"></div>
-          <div id="panel-paychecks" class="mt-2 small"></div>
+          <h3 class="font-medium">Active Job Info</h3>
+          <div id="active-job-card" class="mt-2 small"></div>
+          <div class="mt-2">
+            <button id="edit-active-job" class="btn-outline small">Edit Active Job</button>
+          </div>
         </div>
+
         <div>
-          <h3 class="font-medium">Recent</h3>
-          <div id="panel-recent-tx" class="mt-2 small"></div>
+          <h3 class="font-medium">Profile</h3>
+          <div class="mt-2">
+            <label class="small">Name</label>
+            <input id="profile-name" class="border rounded px-2 py-1 w-full" value="Lexi Natividad Tamot" />
+            <label class="small mt-2">Phone</label>
+            <input id="profile-phone" class="border rounded px-2 py-1 w-full" value="09619128418" />
+            <label class="small mt-2">Email</label>
+            <input id="profile-email" class="border rounded px-2 py-1 w-full" value="tamotnicko1999@gmail.com" />
+            <div class="flex justify-end mt-2">
+              <button id="profile-save-btn" class="btn">Save</button>
+            </div>
+          </div>
         </div>
       </div>
 
       <div class="mt-4">
         <canvas id="chart-monthly"></canvas>
+      </div>
+
+      <div class="mt-4 md-grid-3">
+        <div class="card">
+          <h4 class="font-semibold">Running Pay Period Income</h4>
+          <div id="running-pay-period" class="mt-2 small"></div>
+        </div>
+        <div class="card">
+          <h4 class="font-semibold">Running Monthly Income</h4>
+          <div id="running-monthly" class="mt-2 small"></div>
+        </div>
+        <div class="card">
+          <h4 class="font-semibold">Totals</h4>
+          <div id="totals" class="mt-2 small"></div>
+        </div>
+      </div>
+
+      <div class="mt-4 md-grid-3">
+        <div>
+          <h4 class="font-medium">Upcoming Bills</h4>
+          <div id="panel-next-bills" class="mt-2 small"></div>
+        </div>
+        <div>
+          <h4 class="font-medium">Upcoming Paychecks</h4>
+          <div id="panel-paychecks" class="mt-2 small"></div>
+        </div>
+        <div>
+          <h4 class="font-medium">Recent Transactions</h4>
+          <div id="panel-recent-tx" class="mt-2 small"></div>
+        </div>
       </div>
     </section>
 
@@ -110,14 +167,14 @@
       <div class="flex items-center justify-between">
         <h3 class="font-medium">Income & Expenses</h3>
         <div class="flex items-center gap-2">
-          <input id="global-search" placeholder="Search..." class="border rounded px-2 py-1 small" />
+          <input id="global-search" placeholder="Search jobs, bills, tx..." class="border rounded px-2 py-1 small" />
           <button id="add-tx-btn" class="btn">+ Add</button>
         </div>
       </div>
 
       <div class="mt-3 overflow-x-auto">
         <table id="tx-table" class="w-full text-sm">
-          <thead><tr><th>Date</th><th>Type</th><th>Description</th><th>Category</th><th>Amount</th><th>Balance</th><th>Actions</th></tr></thead>
+          <thead><tr><th>Date</th><th>Type</th><th>Description</th><th>Category</th><th>Amount</th><th>Balance After</th><th>Linked</th><th>Notes</th><th>Status</th><th>Actions</th></tr></thead>
           <tbody></tbody>
         </table>
       </div>
@@ -132,14 +189,30 @@
       <div id="savings-list" class="mt-3"></div>
     </section>
 
-    <!-- Jobs & Salary -->
+    <!-- Jobs & Live Salary Tracker -->
     <section id="panel-salary" class="card hidden">
       <div class="flex items-center justify-between">
-        <h3 class="font-medium">Jobs & Paycheck Tracker</h3>
+        <h3 class="font-medium">Jobs & Live Salary Tracker</h3>
         <button id="add-job-btn" class="btn">+ Add Job</button>
       </div>
 
       <div id="salary-jobs-list" class="mt-3"></div>
+
+      <!-- WorkDay Records -->
+      <div class="mt-4 card">
+        <h4 class="font-semibold">WorkDay Records (Multi-job)</h4>
+
+        <div class="flex items-center gap-2 mt-2">
+          <select id="wd-job-select" class="border rounded px-2 py-1 small"></select>
+          <input id="wd-date" type="date" class="border rounded px-2 py-1 small" />
+          <input id="wd-hours" type="number" step="0.25" placeholder="hrs" class="border rounded px-2 py-1 small" style="width:80px" />
+          <input id="wd-ot" type="number" step="0.25" placeholder="ot" class="border rounded px-2 py-1 small" style="width:80px" />
+          <input id="wd-ded" type="number" step="0.01" placeholder="ded" class="border rounded px-2 py-1 small" style="width:100px" />
+          <button id="wd-add-btn" class="btn">Add Record</button>
+        </div>
+
+        <div id="wd-list" class="mt-3"></div>
+      </div>
 
       <div class="mt-4 card">
         <h4 class="font-semibold">Paystub Preview</h4>
@@ -165,15 +238,18 @@
       <div id="calendar-events" class="mt-3"></div>
     </section>
 
-    <!-- Profile -->
-    <section id="panel-profile" class="card hidden">
-      <h3 class="font-medium">Profile</h3>
-      <div class="mt-2 grid gap-2">
-        <input id="profile-name" placeholder="Name" class="border rounded px-2 py-1" value="Lexi Natividad Tamot" />
-        <input id="profile-phone" placeholder="Phone" class="border rounded px-2 py-1" value="09619128418" />
-        <input id="profile-email" placeholder="Email" class="border rounded px-2 py-1" value="tamotnicko1999@gmail.com" />
-        <div class="flex justify-end gap-2 mt-2">
-          <button id="profile-save-btn" class="btn">Save</button>
+    <!-- Quick Setup -->
+    <section id="panel-quick-setup" class="card hidden">
+      <div class="grid md:grid-cols-2 gap-4">
+        <div>
+          <h3 class="font-medium">Jobs</h3>
+          <button id="add-job-quick-btn" class="btn mt-2">+ Add Job</button>
+          <div id="jobs-quick-list" class="mt-3"></div>
+        </div>
+        <div>
+          <h3 class="font-medium">Bills</h3>
+          <button id="add-bill-btn" class="btn mt-2">+ Add Bill</button>
+          <div id="bills-quick-list" class="mt-3"></div>
         </div>
       </div>
     </section>
@@ -182,7 +258,7 @@
 
   <footer>Lexi — Pastel Pink Kitten Budget Tracker • Asia/Manila timezone</footer>
 
-  <!-- MODALS -->
+  <!-- MODALS (transactions/jobs/bill/event) -->
   <div id="modal-transaction" class="modal-backdrop">
     <div class="modal">
       <h3 class="font-semibold">Add / Edit Transaction</h3>
@@ -250,7 +326,7 @@
       <h3 class="font-semibold">Add / Edit Event</h3>
       <div class="mt-2 grid gap-2">
         <input id="event-form-title" placeholder="Title" class="border rounded px-2 py-1" />
-        <input id="event-form-emoji" placeholder="Emoji (e.g. 🎉)" class="border rounded px-2 py-1" />
+        <input id="event-form-emoji" placeholder="Emoji (optional)" class="border rounded px-2 py-1" />
         <textarea id="event-form-notes" placeholder="Special notes" class="border rounded px-2 py-1"></textarea>
         <input id="event-form-date" type="date" class="border rounded px-2 py-1" />
         <div class="flex justify-between mt-3">
@@ -265,29 +341,31 @@
   </div>
 
 <script>
-/* ===== Lexi App: merged full index.html =====
-  - PHT timezone clock + date + daily quote
-  - IndexedDB autosave + localStorage fallback
-  - Jobs, Transactions (income/expense/saving), Bills, Events
-  - Bi-weekly / weekly / monthly paycheck cutoff logic
-  - Charts via Chart.js
-  - All add/edit/delete modals wired
-  - BroadcastChannel sync and SW registration hook
-======================================== */
+/* Lexi — Full app logic (merged, updated).
+   Key features included:
+   - PHT timezone (Asia/Manila) clock + date + daily quotes
+   - IndexedDB autosave + localStorage fallback
+   - BroadcastChannel cross-tab sync
+   - Undo/Redo (simple)
+   - Jobs with WorkDayRecords and paycheck computation (hourlyRate, dailyEarnings, paycheck)
+   - Paystub preview + sync paycheck -> transactions
+   - Calendar with automatic emoji mapping + notifications + chime
+   - Charts (Chart.js) that update
+*/
 
 (() => {
   const TZ = 'Asia/Manila';
   const DB_NAME = 'lexi_db_v1';
   const DB_STORE = 'lexi_store_v1';
-  const DEBOUNCE_MS = 800;
+  const DEBOUNCE_MS = 600;
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
   const todayISO = ()=> new Date().toLocaleString('sv-SE',{timeZone:TZ}).split(' ')[0];
   const currencyFmt = v => (Number(v)||0).toLocaleString('en-PH',{minimumFractionDigits:2});
-  const formatDDMMYYYY = iso => { if(!iso) return ''; const d=new Date(iso); return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`; };
+  const formatDDMMYYYY = iso => { if(!iso) return ''; const d=new Date(iso+'T00:00:00'); return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`; };
 
-  // state
+  // Application state
   let state = { transactions:[], bills:[], jobs:[], budgets:[], savings:[], events:[] };
 
   // IndexedDB helpers
@@ -300,53 +378,29 @@
       r.onerror = e => rej(e);
     });
   }
-  async function idbPut(key,val){ if(!db) await openDB(); return new Promise((res,rej)=>{ const tx = db.transaction(DB_STORE,'readwrite'); const st = tx.objectStore(DB_STORE); st.put({key,val}); tx.oncomplete = ()=>res(); tx.onerror = e => rej(e); }); }
-  async function idbGet(key){ if(!db) await openDB(); return new Promise((res,rej)=>{ const tx = db.transaction(DB_STORE,'readonly'); const st = tx.objectStore(DB_STORE); const rq = st.get(key); rq.onsuccess = ()=> res(rq.result ? rq.result.val : null); rq.onerror = e => rej(e); }); }
+  async function idbPut(key,val){ try{ if(!db) await openDB(); return new Promise((res,rej)=>{ const tx = db.transaction(DB_STORE,'readwrite'); const st = tx.objectStore(DB_STORE); st.put({key,val}); tx.oncomplete = ()=>res(); tx.onerror = e => rej(e); }); } catch(e){ localStorage.setItem(key, JSON.stringify(val)); } }
+  async function idbGet(key){ try{ if(!db) await openDB(); return new Promise((res,rej)=>{ const tx = db.transaction(DB_STORE,'readonly'); const st = tx.objectStore(DB_STORE); const rq = st.get(key); rq.onsuccess = ()=> res(rq.result ? rq.result.val : null); rq.onerror = e => rej(e); }); } catch(e){ const ls = localStorage.getItem(key); return ls ? JSON.parse(ls) : null; } }
 
-  // BroadcastChannel for cross-tab sync
+  // BroadcastChannel cross-tab
   let bc = null;
-  if('BroadcastChannel' in window) try{ bc = new BroadcastChannel('lexi_channel'); bc.onmessage = (m) => { if(m.data && m.data.type==='state') { state = m.data.state; applyStateToUI(); } }; }catch(e){ bc=null; }
-
+  if('BroadcastChannel' in window) try{ bc = new BroadcastChannel('lexi_channel'); bc.onmessage = (m) => { if(m.data && m.data.type==='state'){ state = m.data.state; applyStateToUI(); } }; }catch(e){ bc=null; }
   function broadcastState(){ if(bc) bc.postMessage({type:'state', state}); }
 
-  // Undo / redo (simple)
-  let undoStack = [], redoStack = [];
-  function pushUndo(){ undoStack.push(JSON.parse(JSON.stringify(state))); if(undoStack.length>100) undoStack.shift(); redoStack = []; }
+  // Undo/Redo
+  const UNDO_LIMIT = 100; let undoStack=[], redoStack=[];
+  function pushUndo(){ undoStack.push(JSON.parse(JSON.stringify(state))); if(undoStack.length>UNDO_LIMIT) undoStack.shift(); redoStack=[]; }
   function undo(){ if(!undoStack.length) return; redoStack.push(JSON.parse(JSON.stringify(state))); state = undoStack.pop(); applyStateToUI(); idbPut('state', state); broadcastState(); }
   function redo(){ if(!redoStack.length) return; undoStack.push(JSON.parse(JSON.stringify(state))); state = redoStack.pop(); applyStateToUI(); idbPut('state', state); broadcastState(); }
 
-  // Helpers: show/hide modals
-  function openModal(id){ const el = document.getElementById(id); if(!el) return; el.classList.add('open'); el.style.display='flex'; el.classList.remove('hidden'); }
-  function closeModal(id){ const el = document.getElementById(id); if(!el) return; el.classList.remove('open'); el.style.display='none'; el.classList.add('hidden'); }
+  // UI helpers
+  function openModal(id){ const el=document.getElementById(id); if(!el) return; el.classList.add('open'); el.style.display='flex'; el.classList.remove('hidden'); }
+  function closeModal(id){ const el=document.getElementById(id); if(!el) return; el.classList.remove('open'); el.style.display='none'; el.classList.add('hidden'); }
 
-  // Save/Load state
-  async function saveAll(){
-    try{ await idbPut('state', state); localStorage.setItem('lexi_state', JSON.stringify(state)); broadcastState(); }catch(e){ localStorage.setItem('lexi_state', JSON.stringify(state)); }
-  }
-  async function loadAll(){
-    try{
-      await openDB();
-      const saved = await idbGet('state');
-      if(saved) state = saved;
-      else {
-        const ls = localStorage.getItem('lexi_state');
-        if(ls) state = JSON.parse(ls);
-        else await seedIfEmpty();
-      }
-    }catch(e){
-      const ls = localStorage.getItem('lexi_state');
-      if(ls) state = JSON.parse(ls);
-      else await seedIfEmpty();
-    }
-  }
-  async function seedIfEmpty(){
-    if(!state) state = { transactions:[], bills:[], jobs:[], budgets:[], savings:[], events:[] };
-    if(!state.jobs) state.jobs = [];
-    if(!state.transactions) state.transactions = [];
-    await idbPut('state', state);
-  }
+  // Save/load
+  async function saveAll(){ pushUndo(); try{ await idbPut('state', state); localStorage.setItem('lexi_state', JSON.stringify(state)); broadcastState(); }catch(e){ localStorage.setItem('lexi_state', JSON.stringify(state)); } scheduleChartsUpdate(); }
+  async function loadAll(){ try{ await openDB(); const saved = await idbGet('state'); if(saved) state = saved; else { const ls = localStorage.getItem('lexi_state'); if(ls) state = JSON.parse(ls); } }catch(e){ const ls = localStorage.getItem('lexi_state'); if(ls) state = JSON.parse(ls); } }
 
-  // Small UI helpers & clock/quotes
+  // Clock & quotes
   function updateClock(){
     const now = new Date(new Date().toLocaleString('en-US',{timeZone:TZ}));
     $('#manila-clock').textContent = now.toLocaleTimeString('en-PH',{hour:'numeric',minute:'2-digit',second:'2-digit',hour12:true});
@@ -355,22 +409,12 @@
   setInterval(updateClock,1000); updateClock();
 
   const quotes = ["Keep going, Lexi! 🐾","Small savings, big dreams ✨","Every peso counts 💖","Budgeting = Freedom 💰","You're doing great! 🌸"];
-  let qi = 0;
-  function rotateQuote(){ $('#motivational-quote').textContent = quotes[qi]; qi=(qi+1)%quotes.length; }
-  // change quote every day at midnight Manila — but for simplicity rotate every 10s while testing, will be daily when left running
-  setInterval(rotateQuote,10000); rotateQuote();
+  let qi=0; function rotateQuote(){ $('#motivational-quote').textContent = quotes[qi]; qi=(qi+1)%quotes.length; }
+  setInterval(rotateQuote,86400000); rotateQuote();
 
-  // Floating paw spawns
-  function spawnPaw(){
-    const d = document.createElement('div'); d.className='floating-paw'; d.textContent='🐾';
-    const left = Math.random()*100; const top = 100 + Math.random()*20;
-    d.style.left = `${left}vw`; d.style.top = `${top}vh`;
-    d.style.transition = 'transform 10s linear, opacity 10s linear';
-    document.body.appendChild(d);
-    requestAnimationFrame(()=> d.style.transform = `translateY(-140vh) rotate(${Math.random()*180-90}deg)`, d.style.opacity='0');
-    setTimeout(()=> d.remove(),10000);
-  }
-  setInterval(spawnPaw,3500);
+  // floating paw animation
+  function spawnPaw(){ const d=document.createElement('div'); d.className='floating-paw'; d.textContent='🐾'; const left=Math.random()*100; const top=100+Math.random()*20; d.style.left=`${left}vw`; d.style.top=`${top}vh`; d.style.transition='transform 10s linear, opacity 10s linear'; document.body.appendChild(d); requestAnimationFrame(()=> d.style.transform=`translateY(-140vh) rotate(${Math.random()*180-90}deg)`, d.style.opacity='0'); setTimeout(()=> d.remove(),10000); }
+  setInterval(spawnPaw,4000);
 
   /* ---------------- Renderers ---------------- */
 
@@ -378,96 +422,97 @@
     const tbody = document.querySelector('#tx-table tbody'); if(!tbody) return; tbody.innerHTML='';
     const list = state.transactions.slice().sort((a,b)=> b.date.localeCompare(a.date));
     const filtered = filterText ? list.filter(t => JSON.stringify(t).toLowerCase().includes(filterText.toLowerCase())) : list;
+    let running = 0;
+    // compute running balance chronologically
+    const ordered = list.slice().sort((a,b)=> a.date.localeCompare(b.date));
+    const balances = {};
+    for(const t of ordered){ if(t.type==='income') running += Number(t.amt||0); else running -= Number(t.amt||0); balances[t.id] = running; }
     filtered.forEach(tx=>{
-      const balAfter = computeBalanceAfter(tx);
-      const tr = document.createElement('tr');
-      tr.innerHTML = `<td class="px-2 py-1">${formatDDMMYYYY(tx.date)}</td>
-        <td class="px-2 py-1">${tx.type}</td>
-        <td class="px-2 py-1">${tx.desc||''}</td>
-        <td class="px-2 py-1">${tx.cat||''}</td>
-        <td class="px-2 py-1">₱${currencyFmt(tx.amt)}</td>
-        <td class="px-2 py-1">₱${currencyFmt(balAfter)}</td>
-        <td class="px-2 py-1"><button data-edit-tx="${tx.id}" class="small text-pink-600">Edit</button> <button data-del-tx="${tx.id}" class="small text-red-600">Delete</button></td>`;
+      const tr=document.createElement('tr');
+      tr.innerHTML = `<td class="px-2 py-1">${formatDDMMYYYY(tx.date)}</td><td class="px-2 py-1">${tx.type}</td><td class="px-2 py-1">${tx.desc||''}</td><td class="px-2 py-1">${tx.cat||''}</td><td class="px-2 py-1">₱${currencyFmt(tx.amt)}</td><td class="px-2 py-1">₱${currencyFmt(balances[tx.id]||0)}</td><td class="px-2 py-1">${tx.linked||''}</td><td class="px-2 py-1">${tx.notes||''}</td><td class="px-2 py-1">${tx.status||''}</td><td class="px-2 py-1"><button data-edit-tx="${tx.id}" class="text-pink-600 small">Edit</button> <button data-del-tx="${tx.id}" class="text-red-600 small">Delete</button></td>`;
       tbody.appendChild(tr);
     });
     tbody.querySelectorAll('[data-del-tx]').forEach(btn=>btn.onclick = ()=>{ deleteTransaction(btn.dataset.delTx); });
     tbody.querySelectorAll('[data-edit-tx]').forEach(btn=>btn.onclick = ()=>{ openTxEditor(btn.dataset.editTx); });
   }
 
-  function computeBalanceAfter(targetTx){
-    const ordered = state.transactions.slice().sort((a,b)=> a.date.localeCompare(b.date));
-    let bal = 0;
-    for(const t of ordered){
-      if(t.type==='income') bal += Number(t.amt||0);
-      else bal -= Number(t.amt||0);
-      if(t.id===targetTx.id) break;
-    }
-    return bal;
-  }
-
   function renderSavings(){
-    const cont = $('#savings-list'); if(!cont) return; cont.innerHTML='';
+    const cont=$('#savings-list'); if(!cont) return; cont.innerHTML='';
     state.savings.forEach(s=>{
       const pct = s.target ? Math.min(100, Math.round(100*Number(s.current||0)/Number(s.target||1))) : 0;
-      const el = document.createElement('div'); el.className='p-2 border rounded mb-2';
-      el.innerHTML = `<div class="flex justify-between"><div>${s.name}</div><div>₱${currencyFmt(s.current)} / ₱${currencyFmt(s.target)}</div></div>
-        <div class="w-full bg-gray-100 h-2 rounded mt-2"><div style="width:${pct}%;height:100%;background:linear-gradient(90deg,#60a5fa,#7c3aed)"></div></div>
-        <div class="mt-2 small"><button data-edit-saving="${s.id}" class="btn-outline small">Edit</button> <button data-del-saving="${s.id}" class="btn-outline small text-red-600">Delete</button></div>`;
+      const el=document.createElement('div'); el.className='p-2 border rounded mb-2';
+      el.innerHTML = `<div class="flex justify-between"><div>${s.name}</div><div>₱${currencyFmt(s.current)} / ₱${currencyFmt(s.target)}</div></div><div class="w-full bg-gray-100 h-2 rounded mt-2"><div style="width:${pct}%;height:100%;background:linear-gradient(90deg,#60a5fa,#7c3aed)"></div></div>`;
       cont.appendChild(el);
     });
-    cont.querySelectorAll('[data-del-saving]').forEach(b=>b.onclick = ()=>{ state.savings = state.savings.filter(x=>x.id!==b.dataset.delSaving); saveAll(); renderSavings(); renderDashboard(); });
-    cont.querySelectorAll('[data-edit-saving]').forEach(b=>b.onclick = ()=>{ /* optional: open saving editor */ });
   }
 
   function renderJobsQuick(){
-    const q = $('#salary-jobs-list'); if(!q) return; q.innerHTML='';
+    const q=$('#salary-jobs-list'); if(!q) return; q.innerHTML='';
     state.jobs.forEach(j=>{
-      const el = document.createElement('div'); el.className='p-3 border rounded mb-3';
-      const payCycle = j.payCycle || j.paycycle || j.payCycle || 'monthly';
-      el.innerHTML = `<div class="font-semibold">${j.company} — ${j.role}</div>
-        <div class="small">Salary: ₱${currencyFmt(j.salary)} • ${payCycle}</div>
-        <div class="mt-2"><button data-open-job="${j.id}" class="btn-outline small">Open</button> <button data-del-job="${j.id}" class="btn-outline small text-red-600">Delete</button></div>`;
+      const el=document.createElement('div'); el.className='p-3 border rounded mb-3';
+      el.innerHTML = `<div class="font-semibold">${j.company} — ${j.role}</div><div class="small">Salary: ₱${currencyFmt(j.salary)} • ${j.payCycle}</div><div class="mt-2"><button data-open-job="${j.id}" class="btn-outline small">Open</button> <button data-del-job="${j.id}" class="btn-outline small text-red-600">Delete</button></div>`;
       q.appendChild(el);
     });
     q.querySelectorAll('[data-del-job]').forEach(b=>b.onclick = ()=>{ deleteJob(b.dataset.delJob); renderJobsQuick(); renderDashboard(); });
     q.querySelectorAll('[data-open-job]').forEach(b=>b.onclick = ()=>{ openJobEditor(b.dataset.openJob); });
+    // populate wd-job-select
+    const sel = $('#wd-job-select'); if(!sel) return; sel.innerHTML=''; state.jobs.forEach(j=>{ const o=document.createElement('option'); o.value=j.id; o.textContent=`${j.company} — ${j.role}`; sel.appendChild(o); });
+    if(state.jobs.length) sel.value = state.jobs[0].id;
+    renderWorkdayList(sel.value);
   }
 
   function renderBillsList(){
-    const cont = $('#panel-next-bills'); if(!cont) return; cont.innerHTML='';
-    if(!state.bills || !state.bills.length) { cont.textContent = 'No bills'; return; }
-    state.bills.slice().sort((a,b)=>a.day - b.day).forEach(b=>{
-      const el = document.createElement('div'); el.className='small'; el.innerHTML = `${b.name} — day ${b.day} • ₱${currencyFmt(b.amount)} <button data-edit-bill="${b.id}" class="btn-outline small">Edit</button> <button data-del-bill="${b.id}" class="btn-outline small text-red-600">Delete</button>`;
+    const cont=$('#panel-next-bills'); if(!cont) return; cont.innerHTML='';
+    if(!state.bills.length){ cont.textContent='No bills'; return; }
+    state.bills.slice().sort((a,b)=>a.day-b.day).forEach(b=>{
+      const el=document.createElement('div'); el.className='small'; el.innerHTML = `<div>${b.name} • day ${b.day} • ₱${currencyFmt(b.amount)} <button data-edit-bill="${b.id}" class="btn-outline small">Edit</button> <button data-del-bill="${b.id}" class="btn-outline small text-red-600">Delete</button></div>`;
       cont.appendChild(el);
     });
     cont.querySelectorAll('[data-edit-bill]').forEach(b=>b.onclick = ()=> openBillEditor(b.dataset.editBill));
     cont.querySelectorAll('[data-del-bill]').forEach(b=>b.onclick = ()=>{ state.bills = state.bills.filter(x=>x.id!==b.dataset.delBill); saveAll(); renderBillsList(); });
   }
 
-  // Dashboard render (summary, charts)
-  let monthlyChart = null;
+  // Dashboard render
+  let monthlyChart=null;
   function renderDashboard(){
-    // compute totals
     const incomes = state.transactions.filter(t=>t.type==='income').reduce((s,x)=>s+Number(x.amt||0),0);
     const expenses = state.transactions.filter(t=>t.type==='expense').reduce((s,x)=>s+Number(x.amt||0),0);
     const savingsT = state.savings.reduce((s,x)=>s+Number(x.current||0),0);
     $('#panel-summary').innerHTML = `<div class="small"><strong>Income:</strong> ₱${currencyFmt(incomes)} • <strong>Expenses:</strong> ₱${currencyFmt(expenses)} • <strong>Savings:</strong> ₱${currencyFmt(savingsT)}</div>`;
 
-    // upcoming paychecks: show computed paydates for jobs
-    const payEl = $('#panel-paychecks'); if(payEl){
-      payEl.innerHTML = '';
-      state.jobs.forEach(j=>{
-        const next = nextPayDateForJob(j);
-        payEl.innerHTML += `<div class="small"> ${j.company} — next pay: ${next} • ${j.payCycle || j.paycycle}</div>`;
-      });
-    }
+    // Active job info (first job or designated active)
+    const active = state.jobs[0] || null;
+    if(active){
+      $('#active-job-card').innerHTML = `<div><strong>${active.company}</strong> — ${active.role}</div><div class="small">₱${currencyFmt(active.salary)} • ${active.payCycle}</div>`;
+      $('#mini-name').textContent = (document.getElementById('profile-name').value || 'Lexi').split(' ')[0];
+      $('#mini-email').textContent = document.getElementById('profile-email').value || '';
+    } else $('#active-job-card').textContent = 'No active job';
 
-    // recent tx
-    const recent = state.transactions.slice().sort((a,b)=> b.date.localeCompare(a.date)).slice(0,5);
-    $('#panel-recent-tx').innerHTML = recent.map(t=>`${formatDDMMYYYY(t.date)} • ${t.desc} • ₱${currencyFmt(t.amt)}`).join('<br>');
+    // upcoming paychecks
+    $('#panel-paychecks').innerHTML = '';
+    state.jobs.forEach(j=>{
+      const p = nextPayDateForJob(j);
+      const html = `<div class="${isDueSoon(p) ? 'due-soon' : ''}">${j.company} — next pay: ${p} ${isDueSoon(p) ? ' • <span class="badge-due">Due soon</span>' : ''}</div>`;
+      $('#panel-paychecks').innerHTML += html;
+    });
 
-    // monthly chart
+    // recent transactions
+    $('#panel-recent-tx').innerHTML = state.transactions.slice().sort((a,b)=> b.date.localeCompare(a.date)).slice(0,6).map(t=>`${formatDDMMYYYY(t.date)} • ${t.desc} • ₱${currencyFmt(t.amt)}`).join('<br>');
+
+    // totals
+    $('#totals').innerHTML = `<div class="small"><strong>Balance:</strong> ₱${currencyFmt(incomes - expenses)} • <strong>Savings Rate:</strong> ${incomes?Math.round(100*savingsT/incomes):0}%</div>`;
+
+    // Running pay period & running monthly
+    $('#running-pay-period').textContent = computeRunningPayPeriodText();
+    $('#running-monthly').textContent = `This month expected: ₱${currencyFmt(computeRunningMonthlyIncome())}`;
+
     renderMonthlyChart();
+    renderTransactionsTable();
+    renderJobsQuick();
+    renderBillsList();
+    renderSavings();
+    renderCalendar();
+    scheduleNotificationsCheck();
   }
 
   function renderMonthlyChart(){
@@ -494,114 +539,173 @@
     });
   }
 
-  /* ---------------- CRUD flows ---------------- */
-
-  // Transactions
+  /* ---------------- Transactions CRUD ---------------- */
   let editingTxId = null;
   $('#add-tx-btn')?.addEventListener('click', ()=> {
-    editingTxId = null;
-    $('#tx-form-date').value = todayISO();
-    $('#tx-form-type').value='income';
-    $('#tx-form-desc').value=''; $('#tx-form-cat').value=''; $('#tx-form-amt').value=''; $('#tx-form-notes').value='';
-    $('#tx-delete-btn').classList.add('hidden');
-    openModal('modal-transaction');
+    editingTxId=null; $('#tx-form-date').value = todayISO(); $('#tx-form-type').value='income'; $('#tx-form-desc').value=''; $('#tx-form-cat').value=''; $('#tx-form-amt').value=''; $('#tx-form-notes').value=''; $('#tx-delete-btn').classList.add('hidden'); openModal('modal-transaction');
   });
-
   $('#tx-cancel-btn')?.addEventListener('click', ()=> closeModal('modal-transaction'));
-
   $('#tx-save-btn')?.addEventListener('click', ()=> {
-    const tx = {
-      id: editingTxId || crypto.randomUUID(),
-      date: $('#tx-form-date').value || todayISO(),
-      desc: $('#tx-form-desc').value || '',
-      cat: $('#tx-form-cat').value || 'Misc',
-      amt: Math.abs(Number($('#tx-form-amt').value) || 0),
-      type: $('#tx-form-type').value || 'income',
-      notes: $('#tx-form-notes').value || '',
-      created: new Date().toISOString()
-    };
-    // if saving as saving/goal, route into savings
-    if(tx.type === 'saving'){
-      const s = { id: crypto.randomUUID(), name: tx.desc || 'Goal', target: tx.amt || 0, current:0, created: (new Date()).toISOString() };
-      state.savings.push(s);
-    } else {
-      if(editingTxId){
-        const i = state.transactions.findIndex(t=>t.id===editingTxId);
-        if(i>-1) state.transactions[i] = tx;
-      } else state.transactions.push(tx);
-    }
-    saveAll();
-    closeModal('modal-transaction');
-    renderTransactionsTable();
-    renderSavings();
-    renderDashboard();
+    const tx = { id: editingTxId || crypto.randomUUID(), date: $('#tx-form-date').value||todayISO(), desc: $('#tx-form-desc').value||'', cat: $('#tx-form-cat').value||'Misc', amt: Math.abs(Number($('#tx-form-amt').value)||0), type: $('#tx-form-type').value||'income', notes: $('#tx-form-notes').value||'', status:'actual', created: (new Date()).toISOString() };
+    if(editingTxId){ const i = state.transactions.findIndex(t=>t.id===editingTxId); if(i>-1) state.transactions[i]=tx; } else state.transactions.push(tx);
+    saveAll(); closeModal('modal-transaction'); renderDashboard();
   });
+  $('#tx-delete-btn')?.addEventListener('click', ()=> { if(!editingTxId) return; if(!confirm('Delete transaction?')) return; state.transactions = state.transactions.filter(t=>t.id!==editingTxId); saveAll(); closeModal('modal-transaction'); renderDashboard(); });
+  function openTxEditor(id){ const tx = state.transactions.find(t=>t.id===id); if(!tx) return; editingTxId=id; $('#tx-form-date').value=tx.date; $('#tx-form-type').value=tx.type; $('#tx-form-desc').value=tx.desc; $('#tx-form-cat').value=tx.cat; $('#tx-form-amt').value=tx.amt; $('#tx-form-notes').value=tx.notes; $('#tx-delete-btn').classList.remove('hidden'); openModal('modal-transaction'); }
+  function deleteTransaction(id){ if(!confirm('Delete transaction?')) return; state.transactions = state.transactions.filter(t=>t.id!==id); saveAll(); renderDashboard(); }
 
-  $('#tx-delete-btn')?.addEventListener('click', ()=> {
-    if(!editingTxId) return;
-    if(!confirm('Delete transaction?')) return;
-    state.transactions = state.transactions.filter(t=>t.id!==editingTxId);
-    saveAll(); closeModal('modal-transaction'); renderTransactionsTable(); renderDashboard();
-  });
-
-  function openTxEditor(id){
-    const tx = state.transactions.find(t=>t.id===id); if(!tx) return;
-    editingTxId = id;
-    $('#tx-form-date').value = tx.date || todayISO();
-    $('#tx-form-type').value = tx.type || 'expense';
-    $('#tx-form-desc').value = tx.desc || '';
-    $('#tx-form-cat').value = tx.cat || '';
-    $('#tx-form-amt').value = tx.amt || '';
-    $('#tx-form-notes').value = tx.notes || '';
-    $('#tx-delete-btn').classList.remove('hidden');
-    openModal('modal-transaction');
-  }
-
-  function deleteTransaction(id){
-    if(!confirm('Delete transaction?')) return;
-    state.transactions = state.transactions.filter(t=>t.id!==id);
-    saveAll(); renderTransactionsTable(); renderDashboard();
-  }
-
-  // Jobs
+  /* ---------------- Jobs & WorkDay Records ---------------- */
   let editingJobId = null;
-  $('#add-job-btn')?.addEventListener('click', ()=> {
-    editingJobId = null;
-    $('#job-form-company').value = ''; $('#job-form-role').value=''; $('#job-form-salary').value=''; $('#job-form-paycycle').value='biweekly'; $('#job-form-fulltime').checked = true;
-    $('#job-delete-btn').classList.add('hidden'); openModal('modal-job');
-  });
+  $('#add-job-btn')?.addEventListener('click', ()=> { editingJobId=null; $('#job-form-company').value=''; $('#job-form-role').value=''; $('#job-form-salary').value=''; $('#job-form-paycycle').value='biweekly'; $('#job-delete-btn').classList.add('hidden'); openModal('modal-job'); });
   $('#job-cancel-btn')?.addEventListener('click', ()=> closeModal('modal-job'));
   $('#job-save-btn')?.addEventListener('click', ()=> {
-    const j = { id: editingJobId || crypto.randomUUID(), company: $('#job-form-company').value||'Job', role: $('#job-form-role').value||'', salary: Number($('#job-form-salary').value)||0, payCycle: $('#job-form-paycycle').value||'monthly', fulltime: $('#job-form-fulltime').checked };
-    if(editingJobId){
-      const i = state.jobs.findIndex(x=>x.id===editingJobId); if(i>-1) state.jobs[i] = j;
-    } else state.jobs.push(j);
+    const j = { id: editingJobId || crypto.randomUUID(), company: $('#job-form-company').value||'Job', role: $('#job-form-role').value||'', salary: Number($('#job-form-salary').value)||0, payCycle: $('#job-form-paycycle').value||'monthly', workdays: j?.workdays || [] };
+    if(editingJobId){ const i = state.jobs.findIndex(x=>x.id===editingJobId); if(i>-1) state.jobs[i]=Object.assign(state.jobs[i], j); } else state.jobs.push(j);
     saveAll(); closeModal('modal-job'); renderJobsQuick(); renderDashboard();
   });
-  $('#job-delete-btn')?.addEventListener('click', ()=> {
-    if(!editingJobId) return; if(!confirm('Delete job?')) return; state.jobs = state.jobs.filter(j=>j.id!==editingJobId); saveAll(); closeModal('modal-job'); renderJobsQuick(); renderDashboard();
-  });
-
-  function openJobEditor(id){
-    const j = state.jobs.find(x=>x.id===id); if(!j) return;
-    editingJobId = id; $('#job-form-company').value = j.company; $('#job-form-role').value = j.role; $('#job-form-salary').value = j.salary; $('#job-form-paycycle').value = j.payCycle || 'monthly'; $('#job-delete-btn').classList.remove('hidden'); openModal('modal-job');
-  }
-
+  $('#job-delete-btn')?.addEventListener('click', ()=> { if(!editingJobId) return; if(!confirm('Delete job?')) return; state.jobs = state.jobs.filter(j=>j.id!==editingJobId); saveAll(); closeModal('modal-job'); renderJobsQuick(); renderDashboard(); });
+  function openJobEditor(id){ const j = state.jobs.find(x=>x.id===id); if(!j) return; editingJobId = id; $('#job-form-company').value=j.company; $('#job-form-role').value=j.role; $('#job-form-salary').value=j.salary; $('#job-form-paycycle').value=j.payCycle||'monthly'; $('#job-delete-btn').classList.remove('hidden'); openModal('modal-job'); }
   function deleteJob(id){ if(!confirm('Delete job?')) return; state.jobs = state.jobs.filter(j=>j.id!==id); saveAll(); renderJobsQuick(); renderDashboard(); }
 
-  // Bills
-  let editingBillId = null;
-  $('#add-bill-btn')?.addEventListener('click', ()=> { editingBillId=null; $('#bill-form-name').value=''; $('#bill-form-day').value='1'; $('#bill-form-amt').value=''; $('#bill-form-auto').checked=false; $('#bill-delete-btn').classList.add('hidden'); openModal('modal-bill');});
-  $('#bill-cancel-btn')?.addEventListener('click', ()=> closeModal('modal-bill'));
-  $('#bill-save-btn')?.addEventListener('click', ()=> {
-    const b = { id: editingBillId||crypto.randomUUID(), name: $('#bill-form-name').value||'Bill', day: Number($('#bill-form-day').value)||1, amount: Number($('#bill-form-amt').value)||0, auto: $('#bill-form-auto').checked||false };
-    if(editingBillId){ const i = state.bills.findIndex(x=>x.id===editingBillId); if(i>-1) state.bills[i]=b; } else state.bills.push(b);
-    saveAll(); closeModal('modal-bill'); renderBillsList(); renderDashboard();
-  });
-  $('#bill-delete-btn')?.addEventListener('click', ()=> { if(!editingBillId) return; if(!confirm('Delete bill?')) return; state.bills = state.bills.filter(b=>b.id!==editingBillId); saveAll(); closeModal('modal-bill'); renderBillsList(); renderDashboard(); });
-  function openBillEditor(id){ const b = state.bills.find(x=>x.id===id); if(!b) return; editingBillId = id; $('#bill-form-name').value=b.name; $('#bill-form-day').value=b.day; $('#bill-form-amt').value=b.amount; $('#bill-form-auto').checked = b.auto; $('#bill-delete-btn').classList.remove('hidden'); openModal('modal-bill'); }
+  // Workday records
+  function addWorkdayRecord(jobId, rec){
+    const job = state.jobs.find(j=>j.id===jobId); if(!job) return;
+    job.workdays = job.workdays || [];
+    const idx = job.workdays.findIndex(w=>w.date===rec.date);
+    if(idx>-1) job.workdays[idx] = {...job.workdays[idx], ...rec};
+    else job.workdays.push({...rec, id:crypto.randomUUID()});
+    saveAll(); renderWorkdayList(jobId); renderDashboard();
+  }
+  function deleteWorkday(jobId, recId){
+    const job = state.jobs.find(j=>j.id===jobId); if(!job) return;
+    job.workdays = (job.workdays||[]).filter(w=>w.id!==recId); saveAll(); renderWorkdayList(jobId); renderDashboard();
+  }
+  function renderWorkdayList(jobId){
+    const job = state.jobs.find(j=>j.id===jobId); const container = $('#wd-list'); if(!container) return;
+    container.innerHTML = '';
+    if(!job || !(job.workdays||[]).length){ container.textContent = 'No records'; return; }
+    job.workdays.slice().sort((a,b)=> b.date.localeCompare(a.date)).forEach(w=>{
+      const el=document.createElement('div'); el.className='p-2 border rounded mb-2';
+      const daily = computeDailyEarnings(job, w.hoursWorked, w.overtimeHours);
+      el.innerHTML = `<div class="flex justify-between"><div>${formatDDMMYYYY(w.date)} • ${w.hoursWorked}h + OT ${w.overtimeHours}h</div><div>₱${currencyFmt(daily)}</div></div>
+        <div class="mt-2 small"><button data-del-wd="${w.id}" class="btn-outline small text-red-600">Delete</button></div>`;
+      container.appendChild(el);
+    });
+    container.querySelectorAll('[data-del-wd]').forEach(b=>b.onclick = ()=>{ deleteWorkday(jobId, b.dataset.delWd); });
+  }
 
-  // Events / Calendar
+  $('#wd-add-btn')?.addEventListener('click', ()=> {
+    const jobId = $('#wd-job-select').value; if(!jobId) return alert('Select job');
+    const rec = { date: $('#wd-date').value || todayISO(), hoursWorked: Number($('#wd-hours').value)||0, overtimeHours: Number($('#wd-ot').value)||0, deductions: Number($('#wd-ded').value)||0 };
+    addWorkdayRecord(jobId, rec);
+  });
+
+  /* ---------------- Paycheck formulas ---------------- */
+
+  function computeHourlyRate(monthlyBase, avgWorkdays=22, hoursPerDay=8){
+    // hourlyRate = monthlyBase ÷ (avgWorkdays × hours/day)
+    const denom = Number(avgWorkdays||22) * Number(hoursPerDay||8);
+    if(!denom) return 0;
+    return Number(monthlyBase || 0) / denom;
+  }
+
+  function computeDailyEarnings(job, hoursWorked=0, overtimeHours=0){
+    // dailyEarnings = hourlyRate × hoursWorked + overtime
+    const avgWorkdays = Number($('#setting-workdays').value) || 22;
+    const hr = computeHourlyRate(Number(job.salary||0), avgWorkdays, 8);
+    // For overtime, assume 1.25x hourly rate * overtimeHours (simple)
+    const overtimePay = hr * 1.25 * Number(overtimeHours || 0);
+    const daily = hr * Number(hoursWorked || 0) + overtimePay;
+    return Math.round(daily * 100) / 100;
+  }
+
+  // compute pay period based on job pay cycle (biweekly rule as requested)
+  function computeBiweeklyPayPeriod(date){
+    const d = (typeof date==='string') ? new Date(date+'T00:00:00') : new Date(date);
+    const y = d.getFullYear(), m = d.getMonth(); const day = d.getDate();
+    const daysInMonth = new Date(y,m+1,0).getDate();
+    if(day <= 15){
+      const start = `${y}-${String(m+1).padStart(2,'0')}-01`;
+      const end = `${y}-${String(m+1).padStart(2,'0')}-15`;
+      const payDate = new Date(y, m, daysInMonth); // end of month
+      return { startISO: start, endISO: end, payDateISO: payDate.toISOString().split('T')[0] };
+    } else {
+      const start = `${y}-${String(m+1).padStart(2,'0')}-16`;
+      const end = `${y}-${String(m+1).padStart(2,'0')}-${String(daysInMonth).padStart(2,'0')}`;
+      const payDate = new Date(y, m+1, 15); // 15th next month
+      return { startISO: start, endISO: end, payDateISO: payDate.toISOString().split('T')[0] };
+    }
+  }
+
+  function computePayPeriodForJob(job, forDate){
+    const d = forDate ? new Date(forDate) : new Date(new Date().toLocaleString('en-PH',{timeZone:TZ}));
+    if(job.payCycle === 'biweekly') return computeBiweeklyPayPeriod(d);
+    if(job.payCycle === 'weekly'){
+      const day = d.getDay(); const diff = (day + 6) % 7; const s = new Date(d); s.setDate(d.getDate() - diff); const e = new Date(s); e.setDate(s.getDate()+6); const payDate = new Date(e); payDate.setDate(e.getDate()+1); return { startISO: s.toISOString().split('T')[0], endISO: e.toISOString().split('T')[0], payDateISO: payDate.toISOString().split('T')[0] };
+    }
+    // monthly
+    const y = d.getFullYear(), m = d.getMonth(); const start = `${y}-${String(m+1).padStart(2,'0')}-01`; const days = new Date(y,m+1,0).getDate(); const end = `${y}-${String(m+1).padStart(2,'0')}-${String(days).padStart(2,'0')}`; const pay = new Date(y,m,days); return { startISO: start, endISO: end, payDateISO: pay.toISOString().split('T')[0] };
+  }
+
+  function computePaycheckForJob(job, forDate){
+    // Sum daily earnings (workdays within pay period) - deductions
+    const p = computePayPeriodForJob(job, forDate);
+    const start = p.startISO, end = p.endISO;
+    const workdays = (job.workdays||[]).filter(w => w.date >= start && w.date <= end);
+    let total = 0; let breakdown = [];
+    for(const wd of workdays){
+      const daily = computeDailyEarnings(job, wd.hoursWorked, wd.overtimeHours);
+      const ded = Number(wd.deductions || 0);
+      total += (daily - ded);
+      breakdown.push({ date: wd.date, daily, ded });
+    }
+    total = Math.round(total*100)/100;
+    return { jobId: job.id, startISO: start, endISO: end, payDateISO: p.payDateISO, expected: total, breakdown };
+  }
+
+  let lastComputedPaycheck = null;
+  $('#compute-paycheck-btn')?.addEventListener('click', ()=>{
+    if(!state.jobs.length) return alert('No jobs');
+    // compute for selected job in wd-job-select (or first)
+    const selJobId = $('#wd-job-select')?.value || (state.jobs[0] && state.jobs[0].id);
+    const job = state.jobs.find(j=>j.id===selJobId);
+    const res = computePaycheckForJob(job);
+    lastComputedPaycheck = res;
+    const preview = $('#paystub-preview');
+    preview.innerHTML = `<div><strong>${job.company}</strong> — ${job.role}</div>
+      <div class="small">Basic salary: ₱${currencyFmt(job.salary)}</div>
+      <div class="small">Pay Period: ${formatDDMMYYYY(res.startISO)} — ${formatDDMMYYYY(res.endISO)}</div>
+      <div class="mt-2 small"><strong>Expected Amount:</strong> ₱${currencyFmt(res.expected)}</div>`;
+    if(res.breakdown.length){
+      preview.innerHTML += `<div class="mt-2 small"><strong>Breakdown:</strong></div>`;
+      res.breakdown.forEach(b=> preview.innerHTML += `<div class="small">${formatDDMMYYYY(b.date)} — Earn: ₱${currencyFmt(b.daily)} • Ded: ₱${currencyFmt(b.ded)}</div>`);
+    }
+    // actual comparison
+    const actual = state.transactions.filter(t=>t.type==='income' && t.date>=res.startISO && t.date<=res.endISO && (t.linked===job.id || t.cat==='Job' || (t.desc||'').includes(job.company))).reduce((s,x)=>s+Number(x.amt||0),0);
+    $('#paycheck-compare').innerHTML = `Expected: ₱${currencyFmt(res.expected)} • Actual: ₱${currencyFmt(actual)} • Diff: ₱${currencyFmt(actual - res.expected)}`;
+  });
+
+  $('#sync-paycheck-btn')?.addEventListener('click', ()=>{
+    if(!lastComputedPaycheck) return alert('Compute paycheck first');
+    const job = state.jobs.find(j=>j.id===lastComputedPaycheck.jobId); if(!job) return;
+    const tx = { id: crypto.randomUUID(), date: lastComputedPaycheck.endISO, desc: `${job.company} — Paycheck (${formatDDMMYYYY(lastComputedPaycheck.startISO)} - ${formatDDMMYYYY(lastComputedPaycheck.endISO)})`, cat:'Job', amt: Number(lastComputedPaycheck.expected), type:'income', notes:'Auto-synced paycheck', created: (new Date()).toISOString(), linked: job.id, status:'planned' };
+    state.transactions.push(tx); saveAll(); renderDashboard(); alert('Paycheck synced to Transactions (planned). Mark as actual when deposited.');
+  });
+
+  function nextPayDateForJob(job){
+    const now = new Date(new Date().toLocaleString('en-PH',{timeZone:TZ}));
+    const p = computePayPeriodForJob(job, now);
+    return p.payDateISO;
+  }
+
+  function isDueSoon(isoDate){
+    if(!isoDate) return false;
+    const now = new Date(new Date().toLocaleString('en-PH',{timeZone:TZ})); const d = new Date(isoDate+'T00:00:00');
+    const diffDays = Math.ceil((d - now)/(1000*60*60*24));
+    return diffDays <= 2;
+  }
+
+  /* ---------------- Calendar & Events ---------------- */
   let calendarDate = new Date(new Date().toLocaleString('en-PH',{timeZone:TZ}));
   function renderCalendar(){
     const grid = $('#calendar-grid'); if(!grid) return; grid.innerHTML='';
@@ -614,18 +718,22 @@
       const iso = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
       const cell = document.createElement('div'); cell.className='p-2 border rounded bg-white';
       const todays = state.events.filter(ev=>ev.date===iso);
-      const chipsHtml = todays.map(ev=>`<div class="calendar-chip ${chipClassFor(ev)}" data-ev-id="${ev.id}">${ev.emoji||''} ${ev.title}</div>`).join('');
+      const chipsHtml = todays.map(ev=>`<div class="calendar-chip ${chipClassFor(ev)}" data-ev-id="${ev.id}">${ev.emoji||defaultEmojiFor(ev.title)} ${ev.title}</div>`).join('');
       cell.innerHTML = `<div class="font-semibold text-sm">${String(d).padStart(2,'0')}</div><div class="mt-2">${chipsHtml}</div>`;
       cell.onclick = (e)=> {
         if(e.target && e.target.matches('.calendar-chip')){ const id = e.target.dataset.evId; const ev = state.events.find(x=>x.id===id); if(ev) openEventEditor(ev); return; }
         openNewEvent(iso);
       };
+      // highlight bills/paydays
+      const hasDue = state.bills.some(b=>{ const next = nextBillDateThisMonth(b, year, month); return next===iso; }) || state.jobs.some(j=> nextPayDateForJob(j)===iso);
+      if(hasDue) cell.classList.add('due-soon');
       grid.appendChild(cell);
     }
   }
   $('#prev-month').addEventListener('click', ()=>{ calendarDate.setMonth(calendarDate.getMonth()-1); renderCalendar(); });
   $('#next-month').addEventListener('click', ()=>{ calendarDate.setMonth(calendarDate.getMonth()+1); renderCalendar(); });
 
+  function defaultEmojiFor(title=''){ const t = (title||'').toLowerCase(); if(/bill|due|payment/.test(t)) return '💸'; if(/salary|payday|payout/.test(t)) return '💰'; if(/birthday/.test(t)) return '🎂'; if(/meeting|interview/.test(t)) return '📅'; if(/doctor|clinic/.test(t)) return '🏥'; if(/flight|travel/.test(t)) return '✈️'; if(/anniversary/.test(t)) return '💖'; return '🐾'; }
   function chipClassFor(ev){ const t=(ev.title||'').toLowerCase(); if(/bill|due|payment/.test(t)) return 'chip-bill'; if(/salary|payday|payout/.test(t)) return 'chip-pay'; if(/birthday/.test(t)) return 'chip-bday'; if(/meeting|interview/.test(t)) return 'chip-meet'; return 'chip-default'; }
 
   let editingEventId = null;
@@ -635,98 +743,118 @@
   $('#event-save-btn')?.addEventListener('click', ()=> {
     const title = $('#event-form-title').value.trim(); const date = $('#event-form-date').value; const emoji = $('#event-form-emoji').value.trim(); const notes = $('#event-form-notes').value.trim();
     if(!title || !date){ alert('Please add title and date'); return; }
-    if(editingEventId){
-      const i = state.events.findIndex(x=>x.id===editingEventId); if(i>-1) state.events[i] = { id:editingEventId, title, emoji, notes, date };
-    } else state.events.push({ id: crypto.randomUUID(), title, emoji, notes, date });
+    if(editingEventId){ const i = state.events.findIndex(x=>x.id===editingEventId); if(i>-1) state.events[i] = { id:editingEventId, title, emoji, notes, date }; }
+    else state.events.push({ id: crypto.randomUUID(), title, emoji, notes, date });
     saveAll(); closeModal('modal-event'); renderCalendar(); renderDashboard();
   });
-  $('#event-delete-btn')?.addEventListener('click', ()=> { if(!editingEventId) return; if(!confirm('Delete event?')) return; state.events = state.events.filter(x=>x.id!==editingEventId); saveAll(); closeModal('modal-event'); renderCalendar(); });
+  $('#event-delete-btn')?.addEventListener('click', ()=> { if(!editingEventId) return; if(!confirm('Delete event?')) return; state.events = state.events.filter(x=>x.id!==editingEventId); saveAll(); closeModal('modal-event'); renderCalendar(); renderDashboard(); });
 
-  /* ---------------- Paycheck logic ---------------- */
-
-  // Given a date (string or Date), return {start,end,payDateISO} for bi-weekly rule
-  function computeBiweeklyPayPeriod(date){
-    const d = (typeof date === 'string') ? new Date(date+'T00:00:00') : new Date(date);
-    const y = d.getFullYear(), m = d.getMonth();
-    const day = d.getDate();
-    let startISO, endISO, payDate;
-    const daysInMonth = new Date(y,m+1,0).getDate();
-    if(day <= 15){
-      startISO = `${y}-${String(m+1).padStart(2,'0')}-01`;
-      endISO = `${y}-${String(m+1).padStart(2,'0')}-15`;
-      payDate = new Date(y, m, daysInMonth); // end of month
-    } else {
-      startISO = `${y}-${String(m+1).padStart(2,'0')}-16`;
-      endISO = `${y}-${String(m+1).padStart(2,'0')}-${String(daysInMonth).padStart(2,'0')}`;
-      payDate = new Date(y, m+1, 15); // 15th of next month
-    }
-    return { startISO, endISO, payDateISO: payDate.toISOString().split('T')[0] };
-  }
-
-  // Generic: compute pay period for job depending on payCycle
-  function computePayPeriodForJob(job, forDate){
-    const d = forDate ? new Date(forDate) : new Date(new Date().toLocaleString('en-PH',{timeZone:TZ}));
-    if(job.payCycle === 'biweekly') return computeBiweeklyPayPeriod(d);
-    if(job.payCycle === 'weekly'){
-      // week starting Monday
-      const day = d.getDay(); const diff = (day + 6) % 7; // days since monday
-      const s = new Date(d); s.setDate(d.getDate()-diff);
-      const e = new Date(s); e.setDate(s.getDate()+6);
-      const payDate = new Date(e); payDate.setDate(e.getDate()+1); // pay next day
-      return { startISO: s.toISOString().split('T')[0], endISO: e.toISOString().split('T')[0], payDateISO: payDate.toISOString().split('T')[0] };
-    }
-    // monthly
-    const y = d.getFullYear(), m = d.getMonth();
-    const start = `${y}-${String(m+1).padStart(2,'0')}-01`;
-    const days = new Date(y,m+1,0).getDate();
-    const end = `${y}-${String(m+1).padStart(2,'0')}-${String(days).padStart(2,'0')}`;
-    const pay = new Date(y,m,days);
-    return { startISO: start, endISO: end, payDateISO: pay.toISOString().split('T')[0] };
-  }
-
-  // compute simple expected paycheck (monthly salary prorated by days in period)
-  function computePaycheckForJobPreview(job, forDate){
-    const p = computePayPeriodForJob(job, forDate);
-    const s = new Date(p.startISO); const e = new Date(p.endISO);
-    const daysInPeriod = ( (e - s) / (1000*60*60*24) ) + 1;
-    // monthly salary -> daily estimate
-    const monthDays = new Date(s.getFullYear(), s.getMonth()+1, 0).getDate();
-    const daily = Number(job.salary||0) / monthDays;
-    const expected = daily * daysInPeriod;
-    return { startISO: p.startISO, endISO: p.endISO, payDateISO: p.payDateISO, expected: Math.round(expected*100)/100, daily };
-  }
-
-  let lastComputedPaycheck = null;
-  $('#compute-paycheck-btn')?.addEventListener('click', ()=>{
-    // if jobs exist, compute first job preview (or combine all)
-    if(!state.jobs.length) return alert('No jobs found');
-    const job = state.jobs[0];
-    const res = computePaycheckForJobPreview(job);
-    lastComputedPaycheck = { jobId: job.id, ...res };
-    const preview = $('#paystub-preview'); preview.innerHTML = `<div><strong>${job.company}</strong> — ${job.role}</div><div class="small">Pay Period: ${formatDDMMYYYY(res.startISO)} — ${formatDDMMYYYY(res.endISO)}</div><div class="mt-2 small"><strong>Expected Amount:</strong> ₱${currencyFmt(res.expected)}</div>`;
-    // compare with actual transactions
-    const actual = state.transactions.filter(t=>t.type==='income' && t.date>=res.startISO && t.date<=res.endISO && (t.linked===job.id || t.cat==='Job' || t.desc?.includes(job.company))).reduce((s,x)=>s+Number(x.amt||0),0);
-    $('#paycheck-compare').innerHTML = `Expected: ₱${currencyFmt(res.expected)} • Actual: ₱${currencyFmt(actual)} • Diff: ₱${currencyFmt(actual - res.expected)}`;
+  /* ---------------- Bills CRUD ---------------- */
+  let editingBillId = null;
+  $('#add-bill-btn')?.addEventListener('click', ()=> { editingBillId=null; $('#bill-form-name').value=''; $('#bill-form-day').value='1'; $('#bill-form-amt').value=''; $('#bill-form-auto').checked=false; $('#bill-delete-btn').classList.add('hidden'); openModal('modal-bill');});
+  $('#bill-cancel-btn')?.addEventListener('click', ()=> closeModal('modal-bill'));
+  $('#bill-save-btn')?.addEventListener('click', ()=> {
+    const b = { id: editingBillId||crypto.randomUUID(), name: $('#bill-form-name').value||'Bill', day: Number($('#bill-form-day').value)||1, amount: Number($('#bill-form-amt').value)||0, auto: $('#bill-form-auto').checked||false };
+    if(editingBillId){ const i = state.bills.findIndex(x=>x.id===editingBillId); if(i>-1) state.bills[i]=b; } else state.bills.push(b);
+    saveAll(); closeModal('modal-bill'); renderBillsList(); renderDashboard();
   });
+  $('#bill-delete-btn')?.addEventListener('click', ()=> { if(!editingBillId) return; if(!confirm('Delete bill?')) return; state.bills = state.bills.filter(b=>b.id!==editingBillId); saveAll(); closeModal('modal-bill'); renderBillsList(); renderDashboard(); });
+  function openBillEditor(id){ const b = state.bills.find(x=>x.id===id); if(!b) return; editingBillId = id; $('#bill-form-name').value=b.name; $('#bill-form-day').value=b.day; $('#bill-form-amt').value=b.amount; $('#bill-form-auto').checked = b.auto; $('#bill-delete-btn').classList.remove('hidden'); openModal('modal-bill'); }
 
-  $('#sync-paycheck-btn')?.addEventListener('click', ()=>{
-    if(!lastComputedPaycheck) return alert('Compute paycheck first');
-    const job = state.jobs.find(j=>j.id===lastComputedPaycheck.jobId); if(!job) return;
-    const tx = { id: crypto.randomUUID(), date: lastComputedPaycheck.endISO, desc: `${job.company} — Paycheck (${formatDDMMYYYY(lastComputedPaycheck.startISO)} - ${formatDDMMYYYY(lastComputedPaycheck.endISO)})`, cat:'Job', amt: Number(lastComputedPaycheck.expected), type:'income', notes:'Auto-synced paycheck', created: (new Date()).toISOString(), linked: job.id };
-    state.transactions.push(tx); saveAll(); renderTransactionsTable(); renderDashboard(); alert('Paycheck synced (planned). Mark actual when deposited.');
-  });
+  function nextBillDateThisMonth(bill, year, month){
+    // return YYYY-MM-DD for this month's due date for that bill
+    const day = Math.min(Math.max(1, Number(bill.day||1)), new Date(year, month+1, 0).getDate());
+    return `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+  }
 
-  function nextPayDateForJob(job){
+  /* ---------------- Notifications + Scheduler ---------------- */
+
+  function playChime(){ try{ const a = $('#kitten-chime'); a.currentTime = 0; a.play().catch(()=>{}); }catch(e){} }
+
+  async function ensureNotificationPermission(){
+    if(!('Notification' in window)) return false;
+    if(Notification.permission === 'granted') return true;
+    if(Notification.permission === 'denied') return false;
+    const p = await Notification.requestPermission();
+    return p === 'granted';
+  }
+
+  async function showLocalNotification(title, body, data={}){
+    const allowed = await ensureNotificationPermission();
+    if(allowed){
+      try{
+        const opt = { body, icon: '', data, badge:'', renotify:true };
+        new Notification(title, opt);
+      }catch(e){}
+    }
+    playChime();
+  }
+
+  // check upcoming bills/paychecks/events and schedule an alert if due within 2 days or at 9 AM on due date
+  function scheduleNotificationsCheck(){
+    // run now to check due soon
+    checkAndNotifyDueItems();
+    // schedule next daily check at next 9:00 AM Manila
     const now = new Date(new Date().toLocaleString('en-PH',{timeZone:TZ}));
-    const p = computePayPeriodForJob(job, now);
-    return p.payDateISO;
+    const next9 = new Date(now); next9.setHours(9,0,0,0);
+    if(next9 <= now) next9.setDate(next9.getDate()+1);
+    const ms = next9 - now;
+    setTimeout(()=>{ checkAndNotifyDueItems(); scheduleNotificationsCheck(); }, ms + 50);
   }
 
-  /* ---------------- Charts scheduling ---------------- */
-  let chartTimer = null;
-  function scheduleChartsUpdate(){ if(chartTimer) clearTimeout(chartTimer); chartTimer = setTimeout(()=>{ renderDashboard(); }, DEBOUNCE_MS); }
+  function checkAndNotifyDueItems(){
+    const now = new Date(new Date().toLocaleString('en-PH',{timeZone:TZ}));
+    // bills due within 2 days
+    state.bills.forEach(b=>{
+      // compute next due date (this month)
+      const y = now.getFullYear(), m = now.getMonth();
+      const due = nextBillDateThisMonth(b, y, m);
+      const dd = new Date(due+'T00:00:00');
+      const diffDays = Math.ceil((dd - now)/(1000*60*60*24));
+      if(diffDays <= 2 && diffDays >= 0){
+        showLocalNotification('Bill due soon', `${b.name} due on ${formatDDMMYYYY(due)} • ₱${currencyFmt(b.amount)}`, {type:'bill', id:b.id});
+      }
+    });
 
-  /* ---------------- Boot flows, wiring, events ---------------- */
+    // paychecks due within 2 days
+    state.jobs.forEach(j=>{
+      const payISO = nextPayDateForJob(j);
+      const dd = new Date(payISO+'T00:00:00'); const diffDays = Math.ceil((dd - now)/(1000*60*60*24));
+      if(diffDays <= 2 && diffDays >= 0){
+        showLocalNotification('Payday coming', `${j.company} pays on ${formatDDMMYYYY(payISO)}`, {type:'payday', jobId:j.id});
+      }
+    });
+
+    // events today
+    state.events.forEach(ev=>{
+      const evd = new Date(ev.date+'T00:00:00');
+      const same = evd.toDateString() === now.toDateString();
+      if(same){
+        showLocalNotification(`Event today: ${ev.title}`, ev.notes || '', {type:'event', id:ev.id});
+      }
+    });
+  }
+
+  /* ---------------- Utility functions ---------------- */
+
+  function computeRunningPayPeriodText(){
+    // for active job (first), compute current running pay period and expected amount from recorded workdays
+    const job = state.jobs[0]; if(!job) return 'No job';
+    const p = computePayPeriodForJob(job);
+    const res = computePaycheckForJob(job);
+    return `Period ${formatDDMMYYYY(res.startISO)} — ${formatDDMMYYYY(res.endISO)} • Expected ₱${currencyFmt(res.expected)} (based on recorded workdays)`;
+  }
+
+  function computeRunningMonthlyIncome(){
+    const month = new Date(new Date().toLocaleString('en-PH',{timeZone:TZ})).toISOString().slice(0,7);
+    return state.transactions.filter(t=>t.type==='income' && t.date && t.date.startsWith(month)).reduce((s,x)=>s+Number(x.amt||0),0);
+  }
+
+  /* ---------------- Chart scheduling ---------------- */
+  let chartTimer = null;
+  function scheduleChartsUpdate(){ if(chartTimer) clearTimeout(chartTimer); chartTimer = setTimeout(()=> renderDashboard(), DEBOUNCE_MS); }
+
+  /* ---------------- Boot / Wiring ---------------- */
 
   // Tab switching
   $$('button[data-panel]').forEach(b=>{
@@ -734,18 +862,17 @@
       $$('button[data-panel]').forEach(x=>x.classList.remove('active'));
       b.classList.add('active');
       const p = b.dataset.panel;
-      $$('main section').forEach(s=>s.classList.add('hidden'));
+      document.querySelectorAll('main section').forEach(s=>s.classList.add('hidden'));
       const sel = document.getElementById(p);
       if(sel) sel.classList.remove('hidden');
-      // re-render calendars if needed
       if(p==='panel-calendar') renderCalendar();
     });
   });
 
-  // search
+  // Search
   $('#global-search')?.addEventListener('input', (e)=> renderTransactionsTable(e.target.value));
 
-  // quick add saving
+  // quick saving examples
   $('#add-saving-btn')?.addEventListener('click', ()=> {
     const name = prompt('Saving name?'); if(!name) return;
     const target = Number(prompt('Target amount (PHP)')||0);
@@ -753,40 +880,41 @@
     saveAll(); renderSavings(); renderDashboard();
   });
 
-  // profile save
+  // Profile save
   $('#profile-save-btn')?.addEventListener('click', ()=> {
-    alert('Profile saved');
-    // in future persist profile to state
+    // profile stored in state.profile if you want persisted later
+    saveAll(); alert('Profile saved');
   });
 
-  // wiring startup save loop & SW
-  async function boot(){
-    try{ await openDB(); }catch(e){ console.warn('IndexedDB error', e); }
-    const saved = await idbGet('state');
-    if(saved) state = saved;
-    else {
-      const ls = localStorage.getItem('lexi_state');
-      if(ls) state = JSON.parse(ls);
-      else state = state; // keep empty
-    }
-    applyStateToUI();
-    // autosave every 5s
-    setInterval(()=> idbPut('state', state), 5000);
+  // quick add job in quick setup
+  $('#add-job-quick-btn')?.addEventListener('click', ()=> document.getElementById('add-job-btn').click());
+  $('#add-job-btn')?.addEventListener('click', ()=> document.getElementById('add-job-btn').dispatchEvent(new Event('click')) );
 
+  // quick add bill
+  $('#add-bill-btn')?.addEventListener('click', ()=> { editingBillId=null; $('#bill-form-name').value=''; $('#bill-form-day').value='1'; $('#bill-form-amt').value=''; $('#bill-form-auto').checked=false; $('#bill-delete-btn').classList.add('hidden'); openModal('modal-bill'); });
+
+  // boot
+  async function boot(){
+    try{ await openDB(); }catch(e){ console.warn('DB error', e); }
+    const saved = await idbGet('state'); if(saved) state = saved; else { const ls = localStorage.getItem('lexi_state'); if(ls) state = JSON.parse(ls); }
+    applyStateToUI();
+    // autosave every 3s
+    setInterval(()=> idbPut('state', state), 3000);
     if('Notification' in window && Notification.permission === 'default') try{ await Notification.requestPermission(); }catch(e){}
+    // service worker registration handled earlier if present
     if('serviceWorker' in navigator){
       navigator.serviceWorker.register('/lexi-sw.js').then(reg => {
         reg.addEventListener('updatefound', ()=>{ const newSW = reg.installing; newSW.addEventListener('statechange', ()=>{ if(newSW.state==='installed'){ if(bc) bc.postMessage({type:'sw-update'}); else showUpdateBanner(); } }); });
       }).catch(()=>console.warn('SW register failed'));
       navigator.serviceWorker?.addEventListener && navigator.serviceWorker.addEventListener('message', (ev)=>{ if(ev.data==='reload'){ showUpdateBanner(); } });
     }
+    // initial notifications schedule
+    scheduleNotificationsCheck();
   }
 
-  function showUpdateBanner(){
-    const b = document.createElement('div'); b.style.position='fixed'; b.style.bottom='16px'; b.style.left='50%'; b.style.transform='translateX(-50%)'; b.style.background='linear-gradient(90deg,#fff1f6,#ffe6f2)'; b.style.color='#7b1b4b'; b.style.padding='8px 12px'; b.style.borderRadius='12px'; b.style.boxShadow='0 6px 20px rgba(0,0,0,0.08)'; b.style.zIndex=9999; b.textContent = 'Lexi updated ✨ refreshing...'; document.body.appendChild(b); setTimeout(()=>{ try{ location.reload(); }catch(e){} }, 900);
-  }
+  function showUpdateBanner(){ const b=document.createElement('div'); b.style.position='fixed'; b.style.bottom='16px'; b.style.left='50%'; b.style.transform='translateX(-50%)'; b.style.background='linear-gradient(90deg,#fff1f6,#ffe6f2)'; b.style.color='#7b1b4b'; b.style.padding='8px 12px'; b.style.borderRadius='12px'; b.style.boxShadow='0 6px 20px rgba(0,0,0,0.08)'; b.style.zIndex=9999; b.textContent='Lexi updated ✨ refreshing...'; document.body.appendChild(b); setTimeout(()=>{ try{ location.reload(); }catch(e){} }, 900); }
 
-  // Apply state to UI
+  // Apply state -> UI
   function applyStateToUI(){
     renderTransactionsTable();
     renderBillsList();
@@ -796,11 +924,11 @@
     renderDashboard();
   }
 
-  // Load then boot
+  // Initial load & start
   loadAll().then(()=> boot());
 
-  // Expose some helpers for debugging
-  window.lexi = { state, saveAll, computeBiweeklyPayPeriod };
+  // expose for debugging
+  window.lexi = { state, saveAll, computeHourlyRate, computeDailyEarnings, computePaycheckForJob };
 
 })();
 </script>
