@@ -1,784 +1,1117 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Lexi’s Budget Tracker 🐾</title>
-
-<!-- Tailwind for rapid responsive layout -->
-<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-
-<!-- Chart.js -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-
-<style>
-  :root{
-    --pink: #ff89b8;
-    --pink-deep: #d62f6b;
-    --muted: #6b7280;
-    --bg: #fff6fb;
-    --card: #fff;
-  }
-  html,body{height:100%; margin:0; font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;}
-  body{ background: radial-gradient(800px 500px at 5% 10%, #fff6fb 0%, #fff0f6 20%, #fff 60%); color:#3b2b33; -webkit-font-smoothing:antialiased;}
-  header{padding:14px 0}
-  .card{background:linear-gradient(180deg,var(--card),#fff7fb); border-radius:12px; padding:12px; box-shadow:0 10px 30px rgba(198,92,148,0.06); border:1px solid rgba(198,92,148,0.04)}
-  .tab-btn{padding:.5rem .75rem; border-radius:999px; cursor:pointer; font-weight:700; transition:transform .12s ease, box-shadow .12s ease}
-  .tab-btn:hover{ transform:translateY(-3px)}
-  .tab-btn.active{ background: linear-gradient(90deg,#ffd6e8,#ffc3df); color:#5b0b3a; box-shadow:0 10px 26px rgba(198,92,148,0.08) }
-  .modal-backdrop{ position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(11,10,11,0.42); z-index:80; padding:12px }
-  .modal-backdrop.open{ display:flex }
-  .modal { width:100%; max-width:760px; border-radius:12px; padding:14px; background:linear-gradient(180deg,#fff,#fff7fb); border:1px solid rgba(0,0,0,0.04) }
-  .floating-paw{ position:fixed; pointer-events:none; font-size:28px; opacity:.14; transform:translate(-50%,-50%); filter: blur(.3px); z-index:9 }
-  .toast{ position:fixed; right:18px; bottom:18px; z-index:9999; display:flex; flex-direction:column; gap:8px; align-items:flex-end }
-  .toast .t{ background:linear-gradient(90deg,#fff1f6,#ffe6f2); color:#6b1030; padding:8px 12px; border-radius:10px; box-shadow:0 8px 18px rgba(0,0,0,0.08) }
-  .small{ font-size:.88rem; color:var(--muted) }
-  .hist-row{ display:flex; align-items:center; justify-content:space-between; gap:12px; padding:.6rem; border-radius:12px; background:linear-gradient(90deg,#fff,#fff6f9); border:1px solid rgba(198,92,148,0.04) }
-  .calendar-chip{ display:inline-block; padding:.25rem .5rem; margin:.25rem 0; border-radius:999px; background:#ffe6f2; color:#7b1541; font-weight:700; font-size:.85rem }
-  /* kitten 3D-ish card */
-  .kitten-3d{ width:120px; height:120px; border-radius:12px; background:linear-gradient(145deg,#fff,#ffeef9); display:flex; align-items:center; justify-content:center; box-shadow: 0 18px 40px rgba(201,84,130,0.08); transform-style:preserve-3d; perspective:600px; }
-  .kitten-3d .kitty{ font-size:48px; transform: rotateX(8deg) rotateY(-8deg); transition: transform .4s ease; }
-  .kitten-3d:hover .kitty{ transform: rotateX(-1deg) rotateY(6deg) translateZ(6px) }
-  /* responsive grid */
-  @media(min-width:1000px){ .lg-grid{ display:grid; grid-template-columns: 1.2fr .9fr .9fr; gap:16px } }
-  @media(min-width:700px){ .md-grid-2{ display:grid; grid-template-columns: 1fr 1fr; gap:12px } }
-  /* cute button */
-  .btn{ background:var(--pink); color:white; padding:.5rem .75rem; border-radius:10px; border:0; font-weight:800; cursor:pointer }
-  .btn-outline{ background:transparent; border:1px solid var(--pink); color:var(--pink); padding:.45rem .65rem; border-radius:10px; cursor:pointer; font-weight:700 }
-</style>
-</head>
-<body>
-
-<!-- audio (kitten chime) -->
-<audio id="kitten-chime" preload="auto"><source src="/assets/kitten-chime.mp3" type="audio/mpeg"></audio>
-
-<!-- header -->
-<header class="max-w-6xl mx-auto px-4">
-  <div class="flex items-center justify-between">
-    <div class="flex items-center gap-4">
-      <div class="text-3xl">🐱</div>
-      <div>
-        <div class="text-xl font-extrabold" style="color:var(--pink-deep)">Lexi’s Budget Tracker 🐾</div>
-        <div class="small">Pastel-kitten • ₱ • Asia/Manila</div>
-      </div>
-      <div id="kitten-3d" class="kitten-3d ml-4"><div class="kitty">😺</div></div>
-    </div>
-    <div class="flex items-center gap-3">
-      <div id="manila-clock" class="small text-right"></div>
-      <div class="small" id="davao-weather"></div>
-      <div class="small" id="phil-holiday"></div>
-      <button id="sound-toggle" class="btn-outline small">🔔 Sound</button>
-    </div>
-  </div>
-
-  <div class="mt-4 flex gap-2 overflow-x-auto">
-    <button class="tab-btn active" data-tab="dashboard">Overview</button>
-    <button class="tab-btn" data-tab="quick-setup">Quick Setup</button>
-    <button class="tab-btn" data-tab="transactions">Transactions</button>
-    <button class="tab-btn" data-tab="budgets">Monthly Budget</button>
-    <button class="tab-btn" data-tab="savings">Savings</button>
-    <button class="tab-btn" data-tab="salary">Salary Tracker</button>
-    <button class="tab-btn" data-tab="calendar">Calendar</button>
-    <button class="tab-btn" data-tab="reports">Reports</button>
-    <button class="tab-btn" data-tab="settings">Settings</button>
-  </div>
-</header>
-
-<!-- main -->
-<main class="max-w-6xl mx-auto p-6 space-y-6">
-
-  <!-- Overview / Dashboard -->
-  <section id="panel-dashboard" class="card">
-    <div class="lg-grid">
-      <div>
-        <div class="flex items-start justify-between">
-          <div>
-            <h2 class="text-xl font-bold">Dashboard</h2>
-            <div id="motivational-quote" class="quote small">Keep going, Lexi! 🐾</div>
-          </div>
-          <div class="small text-right">
-            <div>Profile</div>
-            <div id="profile-info" class="font-semibold small">—</div>
-            <button id="edit-profile" class="btn-outline mt-2 small">Edit</button>
-          </div>
-        </div>
-
-        <div class="mt-4 grid md-grid-2 gap-3">
-          <div class="card">
-            <div class="flex items-center justify-between">
-              <div>
-                <div class="small">Running Pay Period</div>
-                <div class="text-2xl font-extrabold" id="running-pay-period">₱0.00</div>
-              </div>
-              <div class="small text-right">
-                <div>Total Savings</div>
-                <div class="font-bold" id="total-savings">₱0.00</div>
-              </div>
-            </div>
-          </div>
-
-          <div class="card">
-            <div class="flex items-center justify-between">
-              <div>
-                <div class="small">Monthly Income</div>
-                <div class="text-2xl font-extrabold" id="running-monthly-income">₱0.00</div>
-              </div>
-              <div class="small text-right">
-                <div>Balance</div>
-                <div class="font-bold" id="balance">₱0.00</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="mt-4 card">
-          <div class="flex items-center justify-between">
-            <div><strong>Pay Period Summary</strong></div>
-            <div>
-              <select id="dashboard-range" class="border rounded px-2 py-1 small">
-                <option value="biweekly">Bi-weekly</option>
-                <option value="monthly" selected>Monthly</option>
-                <option value="weekly">Weekly</option>
-              </select>
-            </div>
-          </div>
-          <div class="mt-3 md-grid-2">
-            <div>
-              <div class="small">Previous Cutoff</div>
-              <div id="prev-cutoff" class="font-semibold">—</div>
-            </div>
-            <div>
-              <div class="small">Current Cutoff</div>
-              <div id="curr-cutoff" class="font-semibold">—</div>
-            </div>
-          </div>
-        </div>
-
-        <div class="mt-4">
-          <h4 class="font-bold">Recent Transactions</h4>
-          <div id="recent-list" class="mt-2 space-y-2"></div>
-        </div>
-      </div>
-
-      <!-- middle column: charts -->
-      <div class="card">
-        <h4 class="font-bold">Trends</h4>
-        <div class="mt-3">
-          <canvas id="chart-trends" height="220"></canvas>
-        </div>
-        <div class="mt-3 small">Soft area/line charts in pastel palettes</div>
-      </div>
-
-      <!-- right column: quick actions & upcoming -->
-      <div>
-        <div class="card mb-3">
-          <h4 class="font-bold">Quick Actions</h4>
-          <div class="mt-3 flex flex-col gap-3">
-            <button id="open-tx-modal" class="btn">Add Transaction</button>
-            <button id="open-job-modal" class="btn-outline">Add Job</button>
-            <button id="sync-paycheck-btn" class="btn-outline">Sync Paycheck</button>
-            <button id="export-json" class="btn-outline">Export JSON</button>
-          </div>
-        </div>
-
-        <div class="card">
-          <h4 class="font-bold">Next items</h4>
-          <div id="next-items" class="mt-2 small">No upcoming bills or events</div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Quick Setup -->
-  <section id="panel-quick-setup" class="card hidden">
-    <div class="flex items-center justify-between">
-      <h3 class="font-bold">Jobs & Bills</h3>
-      <div class="small">Manage recurring items</div>
-    </div>
-
-    <div class="mt-3 md-grid-2">
-      <div>
-        <h4 class="small font-semibold">Jobs</h4>
-        <div id="jobs-quick" class="mt-2 space-y-2"></div>
-        <button id="add-job-btn" class="btn mt-2">Add Job</button>
-      </div>
-      <div>
-        <h4 class="small font-semibold">Bills</h4>
-        <div id="bills-quick" class="mt-2 space-y-2"></div>
-        <button id="add-bill-btn" class="btn mt-2">Add Bill</button>
-      </div>
-    </div>
-  </section>
-
-  <!-- Transactions -->
-  <section id="panel-transactions" class="card hidden">
-    <div class="flex items-center justify-between">
-      <h3 class="font-bold">Income & Expenses</h3>
-      <div class="small">Search / Filter</div>
-    </div>
-
-    <div class="mt-3">
-      <input id="tx-filter" placeholder="search description, tag or date" class="border rounded px-3 py-2 w-full"/>
-    </div>
-
-    <div class="mt-3 overflow-x-auto">
-      <table id="tx-table" class="w-full">
-        <thead><tr class="small text-left"><th>Date</th><th>Description</th><th>Category</th><th>Amount</th><th>Balance</th><th>Tags</th><th>Status</th><th></th></tr></thead>
-        <tbody></tbody>
-      </table>
-    </div>
-  </section>
-
-  <!-- Budgets -->
-  <section id="panel-budgets" class="card hidden">
-    <h3 class="font-bold">Monthly Budget</h3>
-    <div id="budget-rows" class="mt-3"></div>
-    <button id="add-budget-btn" class="btn mt-3">Add Budget Row</button>
-  </section>
-
-  <!-- Savings -->
-  <section id="panel-savings" class="card hidden">
-    <h3 class="font-bold">Savings & Goals</h3>
-    <div id="savings-list" class="mt-3 space-y-2"></div>
-    <button id="add-savings-btn" class="btn mt-3">Add Savings Goal</button>
-  </section>
-
-  <!-- Salary -->
-  <section id="panel-salary" class="card hidden">
-    <h3 class="font-bold">Live Salary Tracker</h3>
-    <div class="mt-3 md-grid-2">
-      <div>
-        <h4 class="small">Jobs</h4>
-        <div id="salary-jobs-list" class="mt-2"></div>
-      </div>
-      <div>
-        <h4 class="small">Paystub Preview</h4>
-        <div id="paystub-preview" class="mt-2 small"></div>
-        <div class="mt-2"><button id="compute-paycheck-btn" class="btn">Compute Paycheck</button></div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Calendar -->
-  <section id="panel-calendar" class="card hidden">
-    <div class="flex items-center gap-2">
-      <button id="prev-month" class="btn-outline">‹</button>
-      <div id="calendar-month-label" class="font-semibold"></div>
-      <button id="next-month" class="btn-outline">›</button>
-      <div class="ml-auto small">Timezone: Asia/Manila</div>
-    </div>
-    <div id="calendar-grid" class="grid grid-cols-7 gap-2 mt-3"></div>
-    <div id="calendar-events" class="mt-3"></div>
-  </section>
-
-  <!-- Reports -->
-  <section id="panel-reports" class="card hidden">
-    <h3 class="font-bold">Reports & Analytics</h3>
-    <div class="mt-3"><canvas id="chart-reports" height="180"></canvas></div>
-    <div class="mt-3 small">Toggle: Bi-weekly | Monthly | Yearly</div>
-  </section>
-
-  <!-- Settings -->
-  <section id="panel-settings" class="card hidden">
-    <h3 class="font-bold">Settings</h3>
-    <div class="mt-3 grid md-grid-2 gap-3">
-      <div>
-        <h4 class="small">Export / Import / Backup</h4>
-        <div class="flex gap-2 mt-2">
-          <button id="export-json" class="btn">Export JSON</button>
-          <button id="import-json" class="btn-outline">Import JSON</button>
-          <button id="backup-btn" class="btn-outline">Encrypted Backup</button>
-          <button id="restore-btn" class="btn-outline">Restore Backup</button>
-        </div>
-      </div>
-      <div>
-        <h4 class="small">Defaults</h4>
-        <div class="mt-2 small">Currency: <select id="setting-currency" class="border rounded px-2 py-1 small"><option>₱</option></select><br>Avg workdays: <input id="setting-workdays" type="number" value="22" class="border rounded px-2 py-1 small mt-2" style="width:90px"></div>
-      </div>
-    </div>
-  </section>
-
-</main>
-
-<footer class="max-w-6xl mx-auto p-4 small text-center">
-  Lexi • Pastel kitten budget tracker • Asia/Manila
-</footer>
-
-<!-- Modals (IDs preserved) -->
-<div id="modal-transaction" class="modal-backdrop" aria-hidden="true">
-  <div class="modal">
-    <h3 class="font-semibold">Add / Edit Transaction</h3>
-    <div class="mt-3 grid gap-2">
-      <input id="tx-form-date" type="date" class="border rounded px-2 py-1" />
-      <input id="tx-form-desc" placeholder="Description" class="border rounded px-2 py-1" />
-      <input id="tx-form-cat" placeholder="Category" class="border rounded px-2 py-1" />
-      <input id="tx-form-amt" placeholder="Amount" type="number" class="border rounded px-2 py-1" />
-      <input id="tx-form-tags" placeholder="tags (comma separated)" class="border rounded px-2 py-1" />
-      <select id="tx-form-status" class="border rounded px-2 py-1"><option value="planned">Planned</option><option value="actual">Actual</option></select>
-      <div class="flex justify-between mt-3">
-        <div>
-          <button id="tx-cancel-btn" class="btn-outline">Cancel</button>
-          <button id="tx-delete-btn" class="btn-outline text-red-600 hidden">Delete</button>
-        </div>
-        <button id="tx-save-btn" class="btn">Save</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div id="modal-job" class="modal-backdrop" aria-hidden="true">
-  <div class="modal">
-    <h3 class="font-semibold">Add / Edit Job</h3>
-    <div class="mt-3 grid gap-2">
-      <input id="job-form-company" placeholder="Company" class="border rounded px-2 py-1" />
-      <input id="job-form-role" placeholder="Role" class="border rounded px-2 py-1" />
-      <input id="job-form-salary" placeholder="Monthly salary" type="number" class="border rounded px-2 py-1" />
-      <select id="job-form-paycycle" class="border rounded px-2 py-1"><option value="monthly">Monthly</option><option value="biweekly">Bi-weekly</option><option value="weekly">Weekly</option></select>
-      <div class="flex justify-between mt-3">
-        <div><button id="job-cancel-btn" class="btn-outline">Cancel</button><button id="job-delete-btn" class="btn-outline text-red-600 hidden">Delete</button></div>
-        <button id="job-save-btn" class="btn">Save</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div id="modal-event" class="modal-backdrop" aria-hidden="true">
-  <div class="modal">
-    <h3 class="font-semibold">Add / Edit Event</h3>
-    <div class="mt-3 grid gap-2">
-      <input id="event-form-title" placeholder="Title" class="border rounded px-2 py-1" />
-      <textarea id="event-form-notes" placeholder="Notes" class="border rounded px-2 py-1"></textarea>
-      <input id="event-form-date" type="date" class="border rounded px-2 py-1" />
-      <div class="flex justify-between mt-3">
-        <div><button id="event-delete-btn" class="btn-outline text-red-600 hidden">Delete</button></div>
-        <div class="flex gap-2"><button id="event-cancel-btn" class="btn-outline">Cancel</button><button id="event-save-btn" class="btn">Save</button></div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Toast container -->
-<div class="toast" id="toast-area"></div>
-
-<script>
-/* ---------- Lexi App JS (compact but fully functional) ----------
-   Features implemented:
-   - Tabs (works)
-   - IndexedDB autosave (idb simple wrapper)
-   - BroadcastChannel cross-tab sync
-   - Undo/Redo
-   - AES-GCM backup/restore
-   - Notifications and kitten chime (9:00 AM Manila scheduling)
-   - Calendar, Events (emoji mapping), modal CRUD flows
-   - Jobs/Bills/Transactions CRUD with add/edit/delete
-   - Soft pastel Chart.js charts (area/line)
-   - Service worker registration (works if /lexi-sw.js present)
-   Note: All UI IDs are preserved so save/delete/cancel hooks remain stable.
------------------------------------------------------------------- */
-
-(() => {
-  const TZ='Asia/Manila';
-  const $ = s => document.querySelector(s);
-  const $$ = s => Array.from(document.querySelectorAll(s));
-  const toastArea = $('#toast-area');
-  function toast(msg, t=2200){ const d=document.createElement('div'); d.className='t'; d.textContent=msg; toastArea.appendChild(d); setTimeout(()=> d.remove(), t); }
-
-  /* ---------- IndexedDB tiny wrapper ---------- */
-  const DB_NAME='lexi_db_v1', STORE='lexi_store_v1';
-  let db=null;
-  function openDB(){ return new Promise((res,rej)=>{ const r=indexedDB.open(DB_NAME,1); r.onupgradeneeded=e=>{ e.target.result.createObjectStore(STORE); }; r.onsuccess=e=>{ db=e.target.result; res(db); }; r.onerror=rej; }); }
-  async function idbPut(k,v){ if(!db) await openDB(); return new Promise((res,rej)=>{ const tx=db.transaction(STORE,'readwrite'); const s=tx.objectStore(STORE); const rq=s.put({val:v},k); rq.onsuccess=()=>res(); rq.onerror=rej; }); }
-  async function idbGet(k){ if(!db) await openDB(); return new Promise((res,rej)=>{ const tx=db.transaction(STORE,'readonly'); const s=tx.objectStore(STORE); const rq=s.get(k); rq.onsuccess=()=>res(rq.result?rq.result.val:null); rq.onerror=rej; }); }
-
-  /* ---------- State ---------- */
-  let state = { jobs:[], bills:[], transactions:[], budgets:[], savings:[], events:[], profile:{name:'Lexi', phone:'', email:''} };
-  let undoStack=[], redoStack=[];
-  function pushUndo(){ undoStack.push(JSON.parse(JSON.stringify(state))); if(undoStack.length>100) undoStack.shift(); redoStack=[]; }
-  function undo(){ if(!undoStack.length) return; redoStack.push(JSON.parse(JSON.stringify(state))); state = undoStack.pop(); persist(); renderAll(); toast('Undo'); }
-  function redo(){ if(!redoStack.length) return; undoStack.push(JSON.parse(JSON.stringify(state))); state = redoStack.pop(); persist(); renderAll(); toast('Redo'); }
-
-  /* BroadcastChannel cross-tab */
-  let bc=null;
-  try{ bc = new BroadcastChannel('lexi_channel'); bc.onmessage = ev => { if(ev.data?.type==='state'){ state = ev.data.state; renderAll(); toast('Synchronized (tab)'); } } }catch(e){ bc=null; }
-
-  function broadcastState(){ if(bc) bc.postMessage({type:'state', state}); }
-
-  /* ---------- Utilities ---------- */
-  function todayISO(){ return new Date(new Date().toLocaleString('en-PH',{timeZone:TZ})).toISOString().slice(0,10); }
-  function currency(v){ return (v===undefined || v===null) ? '0.00' : Number(v).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2}); }
-  function uid(){ return crypto.randomUUID(); }
-  function emojiForTitle(t=''){ t=(t||'').toLowerCase(); if(/bill|due|payment/.test(t)) return '💸'; if(/salary|payday|payout/.test(t)) return '💰'; if(/birthday/.test(t)) return '🎂'; if(/meeting|interview/.test(t)) return '📅'; if(/doctor|clinic/.test(t)) return '🏥'; if(/flight|travel/.test(t)) return '✈️'; if(/anniversary/.test(t)) return '💖'; return '🐾'; }
-
-  /* ---------- Persist & seed ---------- */
-  async function persist(){ pushUndo(); await idbPut('state', state); broadcastState(); scheduleCharts(); scheduleNextItems(); }
-  async function seedIfEmpty(){ const s=await idbGet('state'); if(s){ state=s; return; } const iso=todayISO(); state.jobs.push({id:uid(), company:'Acme Co', role:'VA', salary:30000, payCycle:'monthly'}); state.transactions.push({id:uid(), date:iso, desc:'Seed Salary', cat:'Job', amt:30000, type:'income', tags:['paycheck'], status:'actual'}); state.transactions.push({id:uid(), date:iso, desc:'Groceries', cat:'Food', amt:-1200, type:'expense', tags:[], status:'actual'}); state.bills.push({id:uid(), name:'Internet', day:5, amount:1500, auto:true}); state.savings.push({id:uid(), name:'Rainy Day', current:2000, target:10000}); await idbPut('state', state); }
-
-  /* ---------- Renderers ---------- */
-  function renderAll(){
-    renderClock();
-    renderProfile();
-    renderDashboard();
-    renderJobs();
-    renderBills();
-    renderTransactions();
-    renderBudgets();
-    renderSavings();
-    renderCalendar();
-    scheduleCharts();
-    scheduleNextItems();
-  }
-
-  function renderClock(){ const now = new Date().toLocaleString('en-PH',{timeZone:TZ, weekday:'short', month:'short', day:'numeric', hour:'numeric', minute:'2-digit', second:'2-digit', hour12:true}); $('#manila-clock').textContent = now; }
-  setInterval(renderClock,1000); renderClock();
-
-  // Profile
-  function renderProfile(){ $('#profile-info').textContent = `${state.profile.name} • ${state.profile.email || 'no email'}`; }
-
-  // Dashboard
-  function renderDashboard(){
-    const inc = state.transactions.filter(t=>t.type==='income').reduce((s,x)=>s+Number(x.amt||0),0);
-    const exp = state.transactions.filter(t=>t.type==='expense').reduce((s,x)=>s+Math.abs(Number(x.amt||0)),0);
-    const sav = state.savings.reduce((s,x)=>s+Number(x.current||0),0);
-    $('#running-monthly-income').textContent = `₱${currency(inc)}`;
-    $('#running-pay-period').textContent = `₱${currency(inc)}`;
-    $('#total-savings').textContent = `₱${currency(sav)}`;
-    $('#balance').textContent = `₱${currency(inc - exp - sav)}`;
-
-    // recent
-    const recent = state.transactions.slice().sort((a,b)=> b.date.localeCompare(a.date)).slice(0,6);
-    const list = $('#recent-list'); list.innerHTML='';
-    recent.forEach(t=> {
-      const d = document.createElement('div'); d.className='hist-row';
-      const left = document.createElement('div'); left.innerHTML = `<div class="font-semibold">${t.desc}</div><div class="small">${t.date} • ${t.cat}</div>`;
-      const right = document.createElement('div'); right.innerHTML = `<div class="font-bold">${t.amt>=0? '₱':'-₱'}${currency(Math.abs(t.amt))}</div><div class="flex gap-2 mt-1"><button class="btn-outline small" data-edit-tx="${t.id}">Edit</button><button class="btn-outline small" data-del-tx="${t.id}">Delete</button></div>`;
-      d.appendChild(left); d.appendChild(right); list.appendChild(d);
-    });
-    // edit/delete wiring
-    $$('[data-edit-tx]').forEach(b=> b.onclick = e => { openTransactionModal(b.dataset.editTx); });
-    $$('[data-del-tx]').forEach(b=> b.onclick = e => { if(confirm('Delete transaction?')){ state.transactions = state.transactions.filter(x=> x.id!==b.dataset.delTx); persist(); renderAll(); } });
-  }
-
-  // Jobs & Bills
-  function renderJobs(){ const c=$('#jobs-quick'); c.innerHTML=''; state.jobs.forEach(j=>{ const el=document.createElement('div'); el.className='hist-row'; el.innerHTML = `<div><strong>${j.company}</strong><div class="small">${j.role}</div></div><div class="text-right"><div class="font-bold">₱${currency(j.salary)}</div><div class="small">${j.payCycle}</div></div>`; c.appendChild(el); }); }
-  function renderBills(){ const c=$('#bills-quick'); c.innerHTML=''; state.bills.forEach(b=>{ const el=document.createElement('div'); el.className='hist-row'; el.innerHTML = `<div><strong>${b.name}</strong><div class="small">Day ${b.day}</div></div><div class="text-right"><div class="font-bold">₱${currency(b.amount)}</div><div class="small">${b.auto? 'Auto' : 'Manual'}</div></div>`; c.appendChild(el); }); }
-
-  // Transactions table
-  function renderTransactions(filter=''){
-    const tbody = document.querySelector('#tx-table tbody'); tbody.innerHTML='';
-    let list = state.transactions.slice().sort((a,b)=> b.date.localeCompare(a.date));
-    if(filter) list = list.filter(t => JSON.stringify(t).toLowerCase().includes(filter.toLowerCase()));
-    list.forEach(t => {
-      const tr = document.createElement('tr');
-      const bal = computeBalanceUpTo(t.id);
-      tr.innerHTML = `<td class="px-2 py-1">${t.date}</td><td class="px-2 py-1">${t.desc}</td><td class="px-2 py-1">${t.cat}</td><td class="px-2 py-1">₱${currency(t.amt)}</td><td class="px-2 py-1">₱${currency(bal)}</td><td class="px-2 py-1">${(t.tags||[]).join(', ')}</td><td class="px-2 py-1">${t.status||''}</td><td class="px-2 py-1"><button data-edit="${t.id}" class="btn-outline small">Edit</button> <button data-del="${t.id}" class="btn-outline small">Delete</button></td>`;
-      tbody.appendChild(tr);
-    });
-    tbody.querySelectorAll('[data-edit]').forEach(b => b.onclick = ()=> openTransactionModal(b.dataset.edit));
-    tbody.querySelectorAll('[data-del]').forEach(b => b.onclick = ()=> { if(confirm('Delete?')){ state.transactions = state.transactions.filter(x=> x.id!==b.dataset.del); persist(); renderAll(); } });
-  }
-  function computeBalanceUpTo(id){
-    const sorted = state.transactions.slice().sort((a,b)=> a.date.localeCompare(b.date));
-    let bal=0;
-    for(const t of sorted){ bal += Number(t.amt||0); if(t.id===id) break; }
-    return bal;
-  }
-
-  // Budgets & Savings render
-  function renderBudgets(){ const cont=$('#budget-rows'); cont.innerHTML=''; state.budgets.forEach(b => { const spent = state.transactions.filter(t=>t.cat===b.cat && t.amt<0).reduce((s,x)=>s+Math.abs(x.amt),0); const pct = b.planned ? Math.min(100, Math.round(100*spent/b.planned)) : 0; const el=document.createElement('div'); el.className='mt-2 p-2 border rounded'; el.innerHTML = `<div class="flex justify-between"><div>${b.cat}</div><div>₱${currency(spent)} / ₱${currency(b.planned)}</div></div><div class="w-full bg-gray-100 h-2 mt-2 rounded"><div style="width:${pct}%;height:100%;background:linear-gradient(90deg,#ffb6c1,#ffd6e8)"></div></div>`; cont.appendChild(el); }); }
-  function renderSavings(){ const cont=$('#savings-list'); cont.innerHTML=''; state.savings.forEach(s=>{ const pct = s.target ? Math.min(100, Math.round(100*s.current/s.target)) : 0; const el=document.createElement('div'); el.className='p-2 border rounded'; el.innerHTML = `<div class="flex justify-between"><div>${s.name}</div><div>₱${currency(s.current)} / ₱${currency(s.target)}</div></div><div class="w-full bg-gray-100 h-2 mt-2 rounded"><div style="width:${pct}%;height:100%;background:linear-gradient(90deg,#b5ead7,#cdeffd)"></div></div>`; cont.appendChild(el); }); }
-
-  // Calendar
-  let calendarDate = new Date(new Date().toLocaleString('en-PH',{timeZone:TZ}));
-  function renderCalendar(){
-    const grid = $('#calendar-grid'); grid.innerHTML='';
-    const y = calendarDate.getFullYear(), m = calendarDate.getMonth();
-    $('#calendar-month-label').textContent = calendarDate.toLocaleString('en-PH',{month:'long', year:'numeric'});
-    const firstWeekday = new Date(y,m,1).getDay();
-    for(let i=0;i<firstWeekday;i++) grid.appendChild(document.createElement('div'));
-    const days = new Date(y,m+1,0).getDate();
-    for(let d=1; d<=days; d++){
-      const iso = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-      const cell = document.createElement('div'); cell.className='p-2 border rounded bg-white';
-      cell.innerHTML = `<div class="font-semibold">${d}</div>`;
-      const dayEvents = state.events.filter(e=> e.date === iso);
-      dayEvents.forEach(ev => { const chip = document.createElement('div'); chip.className='calendar-chip'; chip.textContent = `${ev.emoji} ${ev.title}`; chip.onclick = ()=> openEventModal(ev.id); cell.appendChild(chip); });
-      grid.appendChild(cell);
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Lexi’s Budget Tracker 🐾</title>
+  <meta name="theme-color" content="#f7c7d9" />
+  <link rel="manifest" href="manifest.json" />
+  <!-- TailwindCSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --pink:#f7c7d9; --pink-100:#fdeaf1; --pink-200:#fbd7e4; --pink-300:#f7c7d9; --pink-400:#f4a9c6; --pink-500:#ef8fb6;
+      --accent:#97d6ff; --mint:#b8f0e3; --lav:#d9c2ff; --peach:#ffd7c2; --text:#3b3b3b;
     }
-    // list
-    const evList = $('#calendar-events'); evList.innerHTML = '';
-    state.events.forEach(ev => { const div = document.createElement('div'); div.className='hist-row'; div.innerHTML = `<div><div class="font-semibold">${ev.emoji} ${ev.title}</div><div class="small">${ev.date}</div></div><div><button class="btn-outline small" data-edit-event="${ev.id}">Edit</button></div>`; evList.appendChild(div);});
-    evList.querySelectorAll('[data-edit-event]').forEach(b=> b.onclick = ()=> openEventModal(b.dataset.editEvent));
+    html,body{font-family: "Nunito", system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"; color:var(--text);}
+    .glass{backdrop-filter: blur(8px); background:rgba(255,255,255,.65);}    
+    .card{background: var(--pink-100); border:1px solid #f6dbe6; border-radius: 1rem; box-shadow: 0 10px 24px rgba(0,0,0,.06);} 
+    .tab-btn[aria-selected="true"]{background: white; box-shadow: 0 6px 14px rgba(0,0,0,.07)}
+    /* Floating kitten paw particles */
+    .paw {position: fixed; pointer-events:none; font-size:20px; opacity:.9; animation: floatUp .9s ease-out forwards;} 
+    @keyframes floatUp { from{transform: translateY(0) scale(.9); opacity:.9} to{transform: translateY(-40px) scale(1.4); opacity:0} }
+    /* Pulse for due indicators */
+    .pulse { position: relative; }
+    .pulse::after { content:""; position:absolute; inset:-4px; border-radius:999px; border:2px solid var(--pink-400); animation:pulse 1.5s infinite; }
+    @keyframes pulse { 0%{opacity:.7; transform:scale(.95)} 70%{opacity:0; transform:scale(1.2)} 100%{opacity:0} }
+    /* Simple modal base */
+    .modal{ position: fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,.35); z-index:50;}
+    .modal.active{ display:flex; }
+    /* Calendar grid */
+    .cal-grid{ display:grid; grid-template-columns: repeat(7, minmax(0,1fr)); gap:.5rem; }
+    .chip{ display:inline-flex; align-items:center; gap:.35rem; border-radius:999px; padding:.25rem .6rem; background:white; border:1px dashed #f3b5c7; }
+    .btn{ @apply px-3 py-2 rounded-2xl font-semibold; }
+  </style>
+</head>
+<body class="min-h-screen bg-[var(--pink-200)]">
+  <!-- Audio (preloaded) -->
+  <audio id="kitten-chime" src="/assets/kitten-chime.mp3" preload="auto"></audio>
+
+  <!-- App Shell -->
+  <header class="sticky top-0 z-40 glass border-b border-pink-200">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center gap-3">
+      <div class="text-2xl md:text-3xl font-extrabold">Lexi’s Budget Tracker 🐾</div>
+      <div id="daily-quote" class="ml-auto text-sm md:text-base italic opacity-80"></div>
+    </div>
+  </header>
+
+  <!-- Top status ribbon: clock / weather / holiday -->
+  <div class="max-w-7xl mx-auto px-4 py-3 grid grid-cols-1 md:grid-cols-3 gap-3">
+    <div class="card p-3 flex items-center gap-3">
+      <div class="text-4xl">⏰</div>
+      <div>
+        <div id="manila-clock" class="font-bold text-lg">--:-- --</div>
+        <div id="manila-date" class="text-sm opacity-80">Loading date…</div>
+      </div>
+    </div>
+    <div class="card p-3 flex items-center gap-3">
+      <div class="text-4xl">🌤️</div>
+      <div>
+        <div id="davao-weather" class="font-bold text-lg">Weather: …</div>
+        <div id="davao-temp" class="text-sm opacity-80">Temp: …</div>
+      </div>
+    </div>
+    <div class="card p-3 flex items-center gap-3">
+      <div class="text-4xl">🇵🇭</div>
+      <div>
+        <div id="ph-holiday" class="font-bold text-lg">PH Holiday: …</div>
+        <div class="text-sm opacity-80">Auto-filled from open API</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabs Nav -->
+  <nav class="max-w-7xl mx-auto px-4 pt-2 pb-4">
+    <div class="flex flex-wrap gap-2">
+      <button class="tab-btn px-4 py-2 rounded-2xl bg-[var(--pink-300)]" data-panel="panel-dashboard" aria-selected="true">A) Dashboard</button>
+      <button class="tab-btn px-4 py-2 rounded-2xl bg-[var(--pink-300)]" data-panel="panel-quick-setup">B) Quick Setup</button>
+      <button class="tab-btn px-4 py-2 rounded-2xl bg-[var(--pink-300)]" data-panel="panel-transactions">C) Income & Expenses Log</button>
+      <button class="tab-btn px-4 py-2 rounded-2xl bg-[var(--pink-300)]" data-panel="panel-budgets">D) Monthly Budget</button>
+      <button class="tab-btn px-4 py-2 rounded-2xl bg-[var(--pink-300)]" data-panel="panel-savings">E) Savings & Goals</button>
+      <button class="tab-btn px-4 py-2 rounded-2xl bg-[var(--pink-300)]" data-panel="panel-salary">F) Live Salary Tracker</button>
+      <button class="tab-btn px-4 py-2 rounded-2xl bg-[var(--pink-300)]" data-panel="panel-calendar">G) Calendar & Reminders</button>
+      <button class="tab-btn px-4 py-2 rounded-2xl bg-[var(--pink-300)]" data-panel="panel-reports">Reports</button>
+      <button class="tab-btn px-4 py-2 rounded-2xl bg-[var(--pink-300)]" data-panel="panel-settings">Settings</button>
+      <button id="history-open-btn" class="ml-auto px-4 py-2 rounded-2xl bg-white border">History</button>
+    </div>
+  </nav>
+
+  <main class="max-w-7xl mx-auto px-4 pb-20">
+    <!-- A) Dashboard -->
+    <section id="panel-dashboard" class="space-y-4">
+      <!-- Profile Info (editable) -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div class="card p-4 md:col-span-3">
+          <h2 class="text-xl font-bold mb-3">Profile Info</h2>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div>
+              <label class="text-xs uppercase">Name</label>
+              <input id="profile-name" class="w-full mt-1 p-2 rounded-xl border" value="Lexi Natividad Tamot" />
+            </div>
+            <div>
+              <label class="text-xs uppercase">Phone</label>
+              <input id="profile-phone" class="w-full mt-1 p-2 rounded-xl border" value="09619128418" />
+            </div>
+            <div>
+              <label class="text-xs uppercase">Email</label>
+              <input id="profile-email" class="w-full mt-1 p-2 rounded-xl border" value="tamotnicko1999@gmail.com" />
+            </div>
+          </div>
+          <div class="mt-3 flex gap-2">
+            <button id="profile-save-btn" class="px-3 py-2 rounded-2xl bg-[var(--pink-400)] text-white font-bold">Save</button>
+            <button id="profile-cancel-btn" class="px-3 py-2 rounded-2xl border">Cancel</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Summary Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-3">
+        <div class="card p-4"><div class="text-sm opacity-70">Running Pay Period Income</div><div id="running-pay-income" class="text-2xl font-extrabold">₱0</div></div>
+        <div class="card p-4"><div class="text-sm opacity-70">Running Monthly Income</div><div id="running-month-income" class="text-2xl font-extrabold">₱0</div></div>
+        <div class="card p-4"><div class="text-sm opacity-70">Total Expenses</div><div id="total-expenses" class="text-2xl font-extrabold">₱0</div></div>
+        <div class="card p-4"><div class="text-sm opacity-70">Balance</div><div id="balance" class="text-2xl font-extrabold">₱0</div></div>
+        <div class="card p-4"><div class="text-sm opacity-70">Savings Rate</div><div id="savings-rate" class="text-2xl font-extrabold">0%</div></div>
+        <div class="card p-4"><div class="text-sm opacity-70">Total Savings</div><div id="total-savings" class="text-2xl font-extrabold">₱0</div></div>
+      </div>
+
+      <!-- Pay Period Summary Card (Previous vs Current) -->
+      <div class="card p-4">
+        <h3 class="text-lg font-extrabold mb-3">Pay Period Summary</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="p-3 rounded-xl bg-white border">
+            <h4 class="font-bold mb-2">Previous Pay Period</h4>
+            <div class="text-sm" id="prev-pay-dates">Dates: —</div>
+            <div class="text-sm" id="prev-pay-expected">Expected: ₱0</div>
+            <div class="text-sm" id="prev-pay-actual">Actual: ₱0</div>
+            <div class="text-sm font-semibold" id="prev-pay-diff">Difference: ₱0</div>
+          </div>
+          <div class="p-3 rounded-xl bg-white border">
+            <h4 class="font-bold mb-2">Current Pay Period</h4>
+            <div class="text-sm" id="curr-pay-dates">Dates: —</div>
+            <div class="text-sm" id="curr-pay-expected">Expected: ₱0</div>
+            <div class="text-sm" id="curr-pay-actual">Ongoing Actual: ₱0</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panels: Next Bills / Upcoming Paychecks / Recent Transactions -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-3">
+        <div class="card p-4">
+          <div class="flex items-center justify-between mb-2"><h3 class="font-bold">Next Bills</h3><a class="text-sm underline" href="#" data-panel-jump="panel-quick-setup">Manage</a></div>
+          <ul id="next-bills" class="space-y-2 text-sm"></ul>
+        </div>
+        <div class="card p-4">
+          <div class="flex items-center justify-between mb-2"><h3 class="font-bold">Upcoming Paychecks</h3><a class="text-sm underline" href="#" data-panel-jump="panel-salary">Salary</a></div>
+          <ul id="upcoming-paychecks" class="space-y-2 text-sm"></ul>
+        </div>
+        <div class="card p-4">
+          <div class="flex items-center justify-between mb-2"><h3 class="font-bold">Recent Transactions</h3><a class="text-sm underline" href="#" data-panel-jump="panel-transactions">View all</a></div>
+          <ul id="recent-transactions" class="space-y-2 text-sm"></ul>
+        </div>
+      </div>
+
+      <!-- Charts + Toggle -->
+      <div class="flex items-center gap-2">
+        <span class="text-sm">Aggregate:</span>
+        <div class="inline-flex bg-white rounded-2xl border overflow-hidden">
+          <button class="px-3 py-1 text-sm" id="agg-biweekly">Bi-weekly</button>
+          <button class="px-3 py-1 text-sm bg-[var(--pink-300)]" id="agg-monthly">Monthly</button>
+          <button class="px-3 py-1 text-sm" id="agg-yearly">Yearly</button>
+        </div>
+      </div>
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-3">
+        <canvas id="chart-income"></canvas>
+        <canvas id="chart-expenses"></canvas>
+        <canvas id="chart-savings"></canvas>
+      </div>
+    </section>
+
+    <!-- B) Quick Setup (Jobs & Bills) -->
+    <section id="panel-quick-setup" class="space-y-4 hidden">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div class="card p-4">
+          <h3 class="font-bold text-lg mb-2">Jobs</h3>
+          <form id="job-form" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <input required id="job-company" placeholder="Company" class="p-2 rounded-xl border" />
+            <input required id="job-salary" type="number" min="0" placeholder="Monthly Salary" class="p-2 rounded-xl border" />
+            <select id="job-cycle" class="p-2 rounded-xl border">
+              <option value="weekly">weekly</option>
+              <option value="bi-weekly" selected>bi-weekly</option>
+              <option value="monthly">monthly</option>
+            </select>
+            <input id="job-shift" placeholder="Shift schedule" class="p-2 rounded-xl border" />
+            <div class="md:col-span-2 flex gap-2">
+              <button id="job-save-btn" type="submit" class="px-3 py-2 rounded-2xl bg-[var(--pink-400)] text-white font-bold">Save</button>
+              <button id="job-cancel-btn" type="button" class="px-3 py-2 rounded-2xl border">Cancel</button>
+            </div>
+          </form>
+          <ul id="job-list" class="mt-3 space-y-2 text-sm"></ul>
+        </div>
+        <div class="card p-4">
+          <h3 class="font-bold text-lg mb-2">Bills</h3>
+          <form id="bill-form" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <input required id="bill-name" placeholder="Bill name" class="p-2 rounded-xl border" />
+            <input required id="bill-amount" type="number" min="0" placeholder="Amount" class="p-2 rounded-xl border" />
+            <input required id="bill-due" type="number" min="1" max="31" placeholder="Due day" class="p-2 rounded-xl border" />
+            <label class="inline-flex items-center gap-2 text-sm"><input id="bill-auto" type="checkbox"/> Auto-add</label>
+            <div class="md:col-span-2 flex gap-2">
+              <button id="bill-save-btn" type="submit" class="px-3 py-2 rounded-2xl bg-[var(--pink-400)] text-white font-bold">Save</button>
+              <button id="bill-cancel-btn" type="button" class="px-3 py-2 rounded-2xl border">Cancel</button>
+            </div>
+          </form>
+          <ul id="bill-list" class="mt-3 space-y-2 text-sm"></ul>
+        </div>
+      </div>
+      <div class="card p-4">
+        <h4 class="font-bold mb-2">Quick Summary</h4>
+        <div id="quick-summary" class="text-sm grid grid-cols-2 md:grid-cols-4 gap-2"></div>
+      </div>
+    </section>
+
+    <!-- C) Income & Expenses Log -->
+    <section id="panel-transactions" class="space-y-3 hidden">
+      <div class="flex items-center gap-2">
+        <input id="tx-search" placeholder="Search description or tags…" class="p-2 rounded-xl border w-full" />
+        <button id="tx-add-btn" class="px-3 py-2 rounded-2xl bg-[var(--pink-400)] text-white font-bold">Add</button>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-2">
+        <input id="tx-start" type="date" class="p-2 rounded-xl border" />
+        <input id="tx-end" type="date" class="p-2 rounded-xl border" />
+        <select id="tx-category-filter" class="p-2 rounded-xl border">
+          <option value="">All categories</option>
+          <option>income</option>
+          <option>expense</option>
+          <option>savings</option>
+        </select>
+        <input id="tx-tags-filter" placeholder="Tags (comma)" class="p-2 rounded-xl border" />
+      </div>
+      <div class="overflow-auto">
+        <table class="min-w-full text-sm">
+          <thead><tr class="text-left">
+            <th class="p-2">Date</th><th class="p-2">Description</th><th class="p-2">Category</th>
+            <th class="p-2">Amount</th><th class="p-2">Balance After</th><th class="p-2">Linked</th><th class="p-2">Notes</th><th class="p-2">Tags</th><th class="p-2">Status</th><th class="p-2"></th>
+          </tr></thead>
+          <tbody id="tx-tbody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- D) Monthly Budget (ADDED) -->
+    <section id="panel-budgets" class="space-y-3 hidden">
+      <div class="flex items-center justify-between">
+        <h3 class="text-lg font-bold">Monthly Budget</h3>
+        <button id="budget-add-row-btn" class="px-3 py-2 rounded-2xl bg-[var(--pink-400)] text-white font-bold">Add Category</button>
+      </div>
+      <div class="overflow-auto">
+        <table class="min-w-full text-sm">
+          <thead>
+            <tr class="text-left">
+              <th class="p-2">Category</th>
+              <th class="p-2">Planned</th>
+              <th class="p-2">Actual</th>
+              <th class="p-2">Difference</th>
+              <th class="p-2">Linked Paycheck</th>
+              <th class="p-2">Progress</th>
+              <th class="p-2"></th>
+            </tr>
+          </thead>
+          <tbody id="budget-tbody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- E) Savings & Goals (ADDED) -->
+    <section id="panel-savings" class="space-y-4 hidden">
+      <div class="flex items-center justify-between">
+        <h3 class="text-lg font-bold">Savings & Goals</h3>
+        <button id="goal-add-btn" class="px-3 py-2 rounded-2xl bg-[var(--pink-400)] text-white font-bold">Add Goal</button>
+      </div>
+      <div class="overflow-auto">
+        <table class="min-w-full text-sm">
+          <thead>
+            <tr class="text-left">
+              <th class="p-2">Name</th>
+              <th class="p-2">Target</th>
+              <th class="p-2">Current</th>
+              <th class="p-2">Target Date</th>
+              <th class="p-2">Recurring (amt / freq)</th>
+              <th class="p-2">Progress</th>
+              <th class="p-2"></th>
+            </tr>
+          </thead>
+          <tbody id="goal-tbody"></tbody>
+        </table>
+      </div>
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
+        <canvas id="savings-trend"></canvas>
+        <canvas id="goals-progress"></canvas>
+      </div>
+    </section>
+
+    <!-- F) Live Salary Tracker -->
+    <section id="panel-salary" class="space-y-4 hidden">
+      <div class="card p-4">
+        <h3 class="font-bold text-lg mb-2">Multi-job Calendar & WorkDay Records</h3>
+        <form id="workday-form" class="grid grid-cols-1 md:grid-cols-6 gap-2">
+          <input id="wd-date" type="date" class="p-2 rounded-xl border" required />
+          <input id="wd-job" placeholder="Job (company)" class="p-2 rounded-xl border" required />
+          <input id="wd-hours" type="number" min="0" step="0.1" placeholder="Hours" class="p-2 rounded-xl border" required />
+          <input id="wd-ot" type="number" min="0" step="0.1" placeholder="Overtime" class="p-2 rounded-xl border" />
+          <input id="wd-deduct" type="number" min="0" step="0.01" placeholder="Deductions" class="p-2 rounded-xl border" />
+          <button id="workday-save-btn" class="px-3 py-2 rounded-2xl bg-[var(--pink-400)] text-white font-bold">Save</button>
+        </form>
+        <div class="text-sm opacity-80 mt-2">Formulas: hourlyRate = monthlyBase ÷ (avgWorkdays × hoursPerDay); dailyEarnings = hourlyRate × hoursWorked + overtime; paycheck = Σ(daily − deductions) per pay period</div>
+        <ul id="workday-list" class="mt-3 space-y-2 text-sm"></ul>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
+        <div class="card p-4">
+          <h4 class="font-bold">Dual Paystub Preview</h4>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
+            <div class="p-3 bg-white border rounded-xl">
+              <div class="font-bold">Previous cutoff snapshot</div>
+              <div id="stub-prev" class="text-sm"></div>
+            </div>
+            <div class="p-3 bg-white border rounded-xl">
+              <div class="font-bold">Current (live) cutoff</div>
+              <div id="stub-curr" class="text-sm"></div>
+            </div>
+          </div>
+        </div>
+        <div class="card p-4">
+          <h4 class="font-bold mb-2">Finalize Paycheck</h4>
+          <div id="paycheck-expected" class="text-sm">Expected: ₱0</div>
+          <div id="paycheck-actual" class="text-sm">Actual: ₱0</div>
+          <div class="mt-2 flex gap-2">
+            <button id="paycheck-compute-btn" class="px-3 py-2 rounded-2xl border">Compute</button>
+            <button id="paycheck-sync-btn" class="px-3 py-2 rounded-2xl bg-[var(--pink-400)] text-white font-bold">Sync paycheck</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- G) Calendar & Reminders -->
+    <section id="panel-calendar" class="space-y-3 hidden">
+      <div class="flex items-center justify-between">
+        <h3 class="text-lg font-bold">Calendar & Reminders</h3>
+        <button id="event-add-btn" class="px-3 py-2 rounded-2xl bg-[var(--pink-400)] text-white font-bold">Add Event</button>
+      </div>
+      <div class="card p-4">
+        <div class="grid grid-cols-7 gap-2 text-xs font-bold opacity-70 mb-2">
+          <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
+        </div>
+        <div id="calendar" class="cal-grid"></div>
+      </div>
+    </section>
+
+    <!-- Reports & Analytics -->
+    <section id="panel-reports" class="space-y-3 hidden">
+      <div class="flex items-center gap-2">
+        <span class="text-sm">Aggregate:</span>
+        <div class="inline-flex bg-white rounded-2xl border overflow-hidden">
+          <button class="px-3 py-1 text-sm" id="rep-biweekly">Bi-weekly</button>
+          <button class="px-3 py-1 text-sm bg-[var(--pink-300)]" id="rep-monthly">Monthly</button>
+          <button class="px-3 py-1 text-sm" id="rep-yearly">Yearly</button>
+        </div>
+        <div class="ml-auto flex gap-2">
+          <button id="export-csv-btn" class="px-3 py-2 rounded-2xl border">Export CSV</button>
+          <button id="export-json-btn" class="px-3 py-2 rounded-2xl border">Export JSON</button>
+        </div>
+      </div>
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-3">
+        <canvas id="rep-income"></canvas>
+        <canvas id="rep-expenses"></canvas>
+        <canvas id="rep-savings"></canvas>
+      </div>
+    </section>
+
+    <!-- Settings -->
+    <section id="panel-settings" class="space-y-3 hidden">
+      <div class="card p-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div>
+          <label class="text-xs uppercase">Currency (read-only)</label>
+          <input class="w-full mt-1 p-2 rounded-xl border bg-gray-50" value="₱ Philippine Peso" disabled />
+        </div>
+        <div>
+          <label class="text-xs uppercase">Avg workdays / month</label>
+          <input id="avg-workdays" type="number" class="w-full mt-1 p-2 rounded-xl border" value="22" />
+        </div>
+        <div class="flex items-end gap-2">
+          <button id="settings-save-btn" class="px-3 py-2 rounded-2xl bg-[var(--pink-400)] text-white font-bold">Save</button>
+          <button id="settings-cancel-btn" class="px-3 py-2 rounded-2xl border">Cancel</button>
+        </div>
+      </div>
+      <div class="card p-4 flex flex-wrap gap-2">
+        <button id="backup-btn" class="px-3 py-2 rounded-2xl border">Encrypted Backup</button>
+        <button id="restore-btn" class="px-3 py-2 rounded-2xl border">Encrypted Restore</button>
+        <button id="import-json-btn" class="px-3 py-2 rounded-2xl border">Import JSON</button>
+        <button id="clear-data-btn" class="px-3 py-2 rounded-2xl border">Clear All Data</button>
+      </div>
+    </section>
+  </main>
+
+  <!-- HISTORY PANEL (single compact card w/ sub-tabs) -->
+  <div id="history-modal" class="modal">
+    <div class="card p-4 w-[min(100%,1000px)] max-h-[85vh] overflow-auto">
+      <div class="flex items-center justify-between">
+        <h3 class="text-lg font-bold">History</h3>
+        <button id="history-close-btn" class="px-3 py-2 rounded-2xl border">Close</button>
+      </div>
+      <div class="mt-3 flex flex-wrap gap-2">
+        <button class="hist-tab px-3 py-1 rounded-2xl bg-white border" data-hist="recent" aria-selected="true">Recent</button>
+        <button class="hist-tab px-3 py-1 rounded-2xl bg-white border" data-hist="income">Income</button>
+        <button class="hist-tab px-3 py-1 rounded-2xl bg-white border" data-hist="savings">Savings</button>
+        <button class="hist-tab px-3 py-1 rounded-2xl bg-white border" data-hist="expenses">Expenses</button>
+        <button class="hist-tab px-3 py-1 rounded-2xl bg-white border" data-hist="prevpay">Previous Pay</button>
+        <button class="hist-tab px-3 py-1 rounded-2xl bg-white border" data-hist="currpay">Current Pay</button>
+      </div>
+      <div id="history-views" class="mt-3 space-y-3">
+        <div id="hist-recent" class=""></div>
+        <div id="hist-income" class="hidden"></div>
+        <div id="hist-savings" class="hidden"></div>
+        <div id="hist-expenses" class="hidden"></div>
+        <div id="hist-prevpay" class="hidden"></div>
+        <div id="hist-currpay" class="hidden"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TRANSACTION MODAL -->
+  <div id="tx-modal" class="modal">
+    <div class="card p-4 w-[min(100%,800px)]">
+      <div class="flex items-center justify-between mb-2"><h3 class="font-bold">Transaction</h3><button id="tx-cancel-btn" class="px-3 py-2 rounded-2xl border">Close</button></div>
+      <form id="tx-form" class="grid grid-cols-1 md:grid-cols-3 gap-2">
+        <input id="tx-date" type="date" class="p-2 rounded-xl border" required />
+        <input id="tx-desc" placeholder="Description" class="p-2 rounded-xl border" required />
+        <select id="tx-category" class="p-2 rounded-xl border">
+          <option>income</option><option>expense</option><option>savings</option>
+        </select>
+        <input id="tx-amount" type="number" min="0" step="0.01" placeholder="Amount" class="p-2 rounded-xl border" required />
+        <input id="tx-balance-after" type="number" step="0.01" placeholder="Balance After" class="p-2 rounded-xl border" />
+        <input id="tx-linked" placeholder="Linked Job/Bill" class="p-2 rounded-xl border" />
+        <input id="tx-notes" placeholder="Notes" class="p-2 rounded-xl border md:col-span-2" />
+        <input id="tx-tags" placeholder="Tags (comma)" class="p-2 rounded-xl border" />
+        <select id="tx-status" class="p-2 rounded-xl border"><option>planned</option><option selected>actual</option></select>
+        <div class="md:col-span-3 flex gap-2 mt-2">
+          <button id="tx-save-btn" class="px-3 py-2 rounded-2xl bg-[var(--pink-400)] text-white font-bold" type="submit">Save</button>
+          <button id="tx-delete-btn" class="px-3 py-2 rounded-2xl border" type="button">Delete</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- EVENT MODAL -->
+  <div id="event-modal" class="modal">
+    <div class="card p-4 w-[min(100%,700px)]">
+      <div class="flex items-center justify-between mb-2"><h3 class="font-bold">Event / Reminder</h3><button id="event-cancel-btn" class="px-3 py-2 rounded-2xl border">Close</button></div>
+      <form id="event-form" class="grid grid-cols-1 md:grid-cols-2 gap-2">
+        <input id="event-title" placeholder="Title" class="p-2 rounded-xl border" required />
+        <input id="event-date" type="date" class="p-2 rounded-xl border" required />
+        <input id="event-notes" placeholder="Notes" class="p-2 rounded-xl border md:col-span-2" />
+        <div class="md:col-span-2 flex gap-2">
+          <button id="event-save-btn" class="px-3 py-2 rounded-2xl bg-[var(--pink-400)] text-white font-bold">Save</button>
+          <button id="event-delete-btn" class="px-3 py-2 rounded-2xl border" type="button">Delete</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div id="toast" class="fixed bottom-4 left-1/2 -translate-x-1/2 px-4 py-2 rounded-2xl bg-black text-white text-sm shadow-lg hidden"></div>
+
+  <script>
+  // ===== Utility & Theme =====
+  const ₱ = (n=0)=>`₱${Number(n||0).toLocaleString('en-PH',{minimumFractionDigits:0, maximumFractionDigits:2})}`;
+  const now = ()=> new Date();
+  const TZ = 'Asia/Manila';
+  const bc = new BroadcastChannel('lexi_channel');
+  const SHOW = el=>el.classList.remove('hidden');
+  const HIDE = el=>el.classList.add('hidden');
+  const toast=(msg)=>{const t=document.getElementById('toast'); t.textContent=msg; t.classList.remove('hidden'); setTimeout(()=>t.classList.add('hidden'),1600)};
+  const paw= (x,y)=>{const e=document.createElement('div'); e.className='paw'; e.style.left=`${x}px`; e.style.top=`${y}px`; e.textContent='🐾'; document.body.appendChild(e); setTimeout(()=>e.remove(),900)};
+  document.addEventListener('click',e=>paw(e.clientX,e.clientY));
+
+  // ===== Storage (IndexedDB) =====
+  const DB_NAME='lexi_db_v1';
+  let db; let historyStack=[]; let redoStack=[]; const HISTORY_LIMIT=100;
+  const openDB=()=> new Promise((resolve,reject)=>{
+    const req=indexedDB.open(DB_NAME,1);
+    req.onupgradeneeded=()=>{
+      const d=req.result;
+      if(!d.objectStoreNames.contains('state')) d.createObjectStore('state',{keyPath:'id'});
+      if(!d.objectStoreNames.contains('transactions')) d.createObjectStore('transactions',{keyPath:'id'});
+      if(!d.objectStoreNames.contains('jobs')) d.createObjectStore('jobs',{keyPath:'id'});
+      if(!d.objectStoreNames.contains('bills')) d.createObjectStore('bills',{keyPath:'id'});
+      if(!d.objectStoreNames.contains('budgets')) d.createObjectStore('budgets',{keyPath:'id'});
+      if(!d.objectStoreNames.contains('goals')) d.createObjectStore('goals',{keyPath:'id'});
+      if(!d.objectStoreNames.contains('events')) d.createObjectStore('events',{keyPath:'id'});
+      if(!d.objectStoreNames.contains('workdays')) d.createObjectStore('workdays',{keyPath:'id'});
+    };
+    req.onsuccess=()=>{db=req.result; resolve(db)};
+    req.onerror=()=>reject(req.error);
+  });
+  const txStore=(name,mode='readonly')=>db.transaction(name,mode).objectStore(name);
+  const uid=()=>Math.random().toString(36).slice(2)+Date.now().toString(36);
+
+  const saveItem=(store,item)=>new Promise((res,rej)=>{ txStore(store,'readwrite').put(item).onsuccess=()=>res(item); txStore(store,'readwrite').put(item).onerror=e=>rej(e) });
+  const delItem=(store,id)=>new Promise((res,rej)=>{ txStore(store,'readwrite').delete(id).onsuccess=()=>res(true); txStore(store,'readwrite').delete(id).onerror=e=>rej(e) });
+  const allItems=(store)=>new Promise((res,rej)=>{ const r=txStore(store).getAll(); r.onsuccess=()=>res(r.result||[]); r.onerror=e=>rej(e) });
+
+  function pushHistory(){ Promise.all([
+    allItems('transactions'), allItems('jobs'), allItems('bills'), allItems('budgets'), allItems('goals'), allItems('events'), allItems('workdays'),
+  ]).then(([transactions,jobs,bills,budgets,goals,events,workdays])=>{
+    const snap={id:uid(), ts:Date.now(), transactions,jobs,bills,budgets,goals,events,workdays};
+    historyStack.push(JSON.stringify(snap)); if(historyStack.length>HISTORY_LIMIT) historyStack.shift(); redoStack.length=0; bc.postMessage({t:'history'});
+  }); }
+  const undo=async()=>{ if(historyStack.length<2) return toast('Nothing to undo'); const curr=historyStack.pop(); redoStack.push(curr); const prev=historyStack[historyStack.length-1]; await restoreSnapshot(JSON.parse(prev)); toast('Undo'); bc.postMessage({t:'state'}); };
+  const redo=async()=>{ if(!redoStack.length) return toast('Nothing to redo'); const next=redoStack.pop(); historyStack.push(next); await restoreSnapshot(JSON.parse(next)); toast('Redo'); bc.postMessage({t:'state'}); };
+
+  async function restoreSnapshot(s){ const stores=['transactions','jobs','bills','budgets','goals','events','workdays']; await Promise.all(stores.map(st=>new Promise((resolve)=>{
+    const t=db.transaction(st,'readwrite'); const os=t.objectStore(st); const clearReq=os.clear(); clearReq.onsuccess=()=>{ (s[st]||[]).forEach(it=>os.put(it)); resolve(); };
+  }))); renderAll(); }
+
+  // ===== Global Runtime State =====
+  const runtime={ settings:{ avgWorkdays:22 }, profile:{ name:'Lexi Natividad Tamot', phone:'09619128418', email:'tamotnicko1999@gmail.com' }, aggregate:'monthly' };
+
+  // ===== Quotes =====
+  const QUOTES=[
+    "Small steps, big savings.","Every peso has a purpose.","You’re building the life you want.","Track today, thank yourself tomorrow.","Stay kind, stay consistent. 🐾"
+  ];
+  function setQuote(){ const q=QUOTES[Math.floor(Math.random()*QUOTES.length)]; document.getElementById('daily-quote').textContent=q; }
+
+  // ===== Clock / Weather / Holiday =====
+  function tickClock(){ const z=new Intl.DateTimeFormat('en-PH',{timeZone:TZ, hour:'numeric', minute:'2-digit', hour12:true}); const d=new Intl.DateTimeFormat('en-PH',{timeZone:TZ, weekday:'long', year:'numeric', month:'long', day:'numeric'}); const now=new Date(); document.getElementById('manila-clock').textContent=z.format(now); document.getElementById('manila-date').textContent=d.format(now); }
+  setInterval(tickClock,1000);
+  async function fetchWeather(){ try{ const r= await fetch('https://api.open-meteo.com/v1/forecast?latitude=7.0731&longitude=125.6128&current=temperature_2m,weather_code'); const j=await r.json(); document.getElementById('davao-weather').textContent='Weather code '+(j?.current?.weather_code ?? '—'); document.getElementById('davao-temp').textContent = `Temp: ${j?.current?.temperature_2m ?? '—'}°C`; }catch{ /* offline */ } }
+  async function fetchHoliday(){ try{ const y=new Date().getFullYear(); const r= await fetch(`https://date.nager.at/api/v3/PublicHolidays/${y}/PH`); const j=await r.json(); const today=new Date().toISOString().slice(0,10); const hit=j.find(h=>h.date===today); document.getElementById('ph-holiday').textContent=hit? hit.localName : 'No holiday today'; }catch{ /* offline */ } }
+
+  // ===== Notifications =====
+  async function ensureNotify(){ if(!('Notification' in window)) return; if(Notification.permission!=='granted'){ try{ await Notification.requestPermission(); }catch{} }
+  }
+  function scheduleNineAM(){ // in-page lightweight scheduler while app open
+    const now=new Date(); const tzNow=new Date(new Intl.DateTimeFormat('en-US',{ timeZone:TZ, hour12:false, hour:'2-digit', minute:'2-digit'}).format(now).replace(/(\d{2}):(\d{2})/,'$1:$2') );
+    // fallback: fire soon after load for due items
+    setTimeout(checkDueNotifications, 2000);
+  }
+  function notify(text){ try{ const n=new Notification('Lexi 🐾', {body:text}); document.getElementById('kitten-chime').currentTime=0; document.getElementById('kitten-chime').play(); }catch{} }
+
+  // Auto emoji mapping
+  function mapEmoji(title){ const t=title.toLowerCase(); if(/bill|due|payment/.test(t)) return '💸'; if(/salary|payday|payout/.test(t)) return '💰'; if(/birthday/.test(t)) return '🎂'; if(/meeting|interview/.test(t)) return '📅'; if(/doctor|clinic/.test(t)) return '🏥'; if(/flight|travel/.test(t)) return '✈️'; if(/anniversary/.test(t)) return '💖'; return '🐾'; }
+
+  // ===== Charts =====
+  let chartIncome, chartExpenses, chartSavings, repIncome, repExpenses, repSavings, savTrend, goalsProgress;
+  const pastel=(i)=> ['#f7c7d9','#ffd7c2','#d9c2ff','#b8f0e3','#97d6ff','#ffefc2'][i%6];
+  function setupChart(ctx,label){ return new Chart(ctx,{type:'line', data:{ labels:[], datasets:[{label,borderWidth:2, data:[]}]}, options:{responsive:true} }); }
+
+  // ===== Render Helpers (fetch from DB, compute, then draw) =====
+  async function computeSummaries(){ const [txs, goals] = await Promise.all([allItems('transactions'), allItems('goals')]); const income=txs.filter(t=>t.category==='income').reduce((a,b)=>a+Number(b.amount||0),0); const expenses=txs.filter(t=>t.category==='expense').reduce((a,b)=>a+Number(b.amount||0),0); const savings=txs.filter(t=>t.category==='savings').reduce((a,b)=>a+Number(b.amount||0),0); const bal = income - expenses - savings; const rate = income ? Math.round((savings/income)*100) : 0; document.getElementById('total-expenses').textContent=₱(expenses); document.getElementById('total-savings').textContent=₱(savings); document.getElementById('balance').textContent=₱(bal); document.getElementById('savings-rate').textContent=rate+"%";
+    // Running Monthly Income
+    const now=new Date(); const ym=now.getFullYear()+"-"+(String(now.getMonth()+1).padStart(2,'0')); const monthIncome = txs.filter(t=>t.category==='income' && (t.date||'').startsWith(ym)).reduce((a,b)=>a+Number(b.amount||0),0); document.getElementById('running-month-income').textContent=₱(monthIncome);
+    // Pay period detection (bi-weekly by default)
+    const day= now.getDate(); let start, end; if(day<=15){ start=new Date(now.getFullYear(), now.getMonth(),1); end=new Date(now.getFullYear(), now.getMonth(),15); } else { start=new Date(now.getFullYear(), now.getMonth(),16); end=new Date(now.getFullYear(), now.getMonth()+1,0); }
+    const sISO=start.toISOString().slice(0,10), eISO=end.toISOString().slice(0,10); document.getElementById('curr-pay-dates').textContent=`Dates: ${sISO} → ${eISO}`;
+    const payIncome= txs.filter(t=>t.category==='income' && t.date>=sISO && t.date<=eISO).reduce((a,b)=>a+Number(b.amount||0),0); document.getElementById('running-pay-income').textContent=₱(payIncome); document.getElementById('curr-pay-actual').textContent=`Ongoing Actual: ${₱(payIncome)}`;
+    // Previous period (simple prior window)
+    let ps, pe; if(day<=15){ ps=new Date(now.getFullYear(), now.getMonth()-1,16); pe=new Date(now.getFullYear(), now.getMonth(),0);} else { ps=new Date(now.getFullYear(), now.getMonth(),1); pe=new Date(now.getFullYear(), now.getMonth(),15); }
+    const psISO=ps.toISOString().slice(0,10), peISO=pe.toISOString().slice(0,10); document.getElementById('prev-pay-dates').textContent=`Dates: ${psISO} → ${peISO}`; const prevIncome = txs.filter(t=>t.category==='income' && t.date>=psISO && t.date<=peISO).reduce((a,b)=>a+Number(b.amount||0),0); document.getElementById('prev-pay-actual').textContent=`Actual: ${₱(prevIncome)}`; // Expected (rough from jobs)
+    const jobs= await allItems('jobs'); const expectedCurr = jobs.reduce((a,j)=> a + (j.cycle==='monthly'? Number(j.salary||0)/2 : j.cycle==='weekly'? Number(j.salary||0)*0.5 : Number(j.salary||0)/2), 0); document.getElementById('curr-pay-expected').textContent=`Expected: ${₱(expectedCurr)}`; const expectedPrev=expectedCurr; document.getElementById('prev-pay-expected').textContent=`Expected: ${₱(expectedPrev)}`; document.getElementById('prev-pay-diff').textContent=`Difference: ${₱(expectedPrev - prevIncome)}`;
+    // Next Bills / Upcoming Paychecks / Recent tx
+    const bills = await allItems('bills'); const todayISO=new Date().toISOString().slice(0,10); const next = bills.map(b=>({name:b.name, due:b.due})).sort((a,b)=>a.due-b.due).slice(0,5); document.getElementById('next-bills').innerHTML = next.map(n=>`<li class="flex items-center justify-between"><span>${n.name}</span><span class="chip ${Number(n.due)<= (new Date()).getDate()+2?'pulse':''}">Due ${String(n.due).padStart(2,'0')}</span></li>`).join('');
+    const upcoming = [{title:'Payday', date: (day<=15? new Date(now.getFullYear(), now.getMonth(), 30): new Date(now.getFullYear(), now.getMonth()+1, 15)).toISOString().slice(0,10)}]; document.getElementById('upcoming-paychecks').innerHTML = upcoming.map(u=>`<li class="flex items-center justify-between"><span>${u.title}</span><span class="chip ${ (new Date(u.date))-now < 3*86400000 ? 'pulse':''}">${u.date}</span></li>`).join('');
+    const recent = txs.sort((a,b)=>b.date.localeCompare(a.date)).slice(0,5); document.getElementById('recent-transactions').innerHTML = recent.map(t=>`<li class="flex items-center justify-between"><span>${t.date} — ${t.description}</span><span>${₱(t.amount)}</span></li>`).join('');
   }
 
-  /* ---------- Charting (soft visuals) ---------- */
-  let trendsChart=null, reportsChart=null, chartTimer=null;
-  function scheduleCharts(){ if(chartTimer) clearTimeout(chartTimer); chartTimer=setTimeout(()=> renderCharts(), 220); }
-  function renderCharts(){
-    // compute monthly sums for last 6 months
-    const now = new Date(new Date().toLocaleString('en-PH',{timeZone:TZ})); const labels=[], inc=[], exp=[], sav=[];
-    for(let i=5;i>=0;i--){ const d=new Date(now.getFullYear(), now.getMonth()-i,1); labels.push(d.toLocaleString('en-PH',{month:'short', year:'numeric'})); const ym = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; inc.push(state.transactions.filter(t=>t.type==='income' && t.date.startsWith(ym)).reduce((s,x)=>s+Number(x.amt||0),0)); exp.push(Math.abs(state.transactions.filter(t=>t.type==='expense' && t.date.startsWith(ym)).reduce((s,x)=>s+Number(x.amt||0),0))); sav.push(state.savings.reduce((s,x)=>s+Number(x.current||0),0)); }
-    // Trends chart (area + line)
-    const ctx = document.getElementById('chart-trends').getContext('2d');
-    if(trendsChart) trendsChart.destroy();
-    const gradInc = ctx.createLinearGradient(0,0,0,220); gradInc.addColorStop(0,'rgba(255,182,193,0.45)'); gradInc.addColorStop(1,'rgba(255,182,193,0.08)');
-    const gradExp = ctx.createLinearGradient(0,0,0,220); gradExp.addColorStop(0,'rgba(198,223,255,0.45)'); gradExp.addColorStop(1,'rgba(198,223,255,0.08)');
-    trendsChart = new Chart(ctx, {
-      type:'line',
-      data:{ labels, datasets:[
-        { label:'Income', data:inc, tension:0.35, fill:true, backgroundColor:gradInc, borderColor:'#ff8fb3', pointRadius:5, pointHoverRadius:7 },
-        { label:'Expenses', data:exp, tension:0.35, fill:true, backgroundColor:gradExp, borderColor:'#7fb7ff', pointRadius:5, pointHoverRadius:7 }
-      ]},
-      options:{ responsive:true, plugins:{legend:{position:'bottom'}}, scales:{ y:{ beginAtZero:true } } }
+  // ===== Render Budgets =====
+  async function renderBudgets(){ const rows = await allItems('budgets'); const txs = await allItems('transactions'); const tbody=document.getElementById('budget-tbody'); tbody.innerHTML = rows.map(r=>{ const actual = txs.filter(t=>t.category==='expense' && (t.tags||'').includes(r.category)).reduce((a,b)=>a+Number(b.amount||0),0); const diff = Number(r.planned||0)-actual; const pct = Math.min(100, Math.round(actual / (Number(r.planned||1)) * 100)); return `
+      <tr>
+        <td class="p-2">${r.category}</td>
+        <td class="p-2">${₱(r.planned)}</td>
+        <td class="p-2">${₱(actual)}</td>
+        <td class="p-2 font-semibold ${diff<0?'text-red-600':''}">${₱(diff)}</td>
+        <td class="p-2">${r.paycheck||'-'}</td>
+        <td class="p-2"><div class="w-full bg-white border rounded-xl overflow-hidden"><div class="h-2" style="width:${pct}%; background:var(--pink-500)"></div></div></td>
+        <td class="p-2 text-right"><button class="px-3 py-1 rounded-xl border" data-edit-budget="${r.id}">Edit</button> <button class="px-3 py-1 rounded-xl border" data-del-budget="${r.id}">Delete</button></td>
+      </tr>`; }).join('');
+  }
+
+  // ===== Render Savings =====
+  async function renderSavings(){ const goals = await allItems('goals'); const tbody=document.getElementById('goal-tbody'); tbody.innerHTML = goals.map(g=>{ const pct = Math.min(100, Math.round((Number(g.current||0) / (Number(g.target||1))) * 100)); return `
+      <tr>
+        <td class="p-2">${g.name}</td>
+        <td class="p-2">${₱(g.target)}</td>
+        <td class="p-2">${₱(g.current)}</td>
+        <td class="p-2">${g.date||'-'}</td>
+        <td class="p-2">${g.recurringAmt?₱(g.recurringAmt):'-'} / ${g.recurringFreq||'-'}</td>
+        <td class="p-2"><div class="w-full bg-white border rounded-xl overflow-hidden"><div class="h-2" style="width:${pct}%; background:var(--lav)"></div></div></td>
+        <td class="p-2 text-right"><button class="px-3 py-1 rounded-xl border" data-edit-goal="${g.id}">Edit</button> <button class="px-3 py-1 rounded-xl border" data-del-goal="${g.id}">Delete</button></td>
+      </tr>`; }).join('');
+    drawSavingsCharts(goals);
+  }
+  function drawSavingsCharts(goals){ const labels=goals.map(g=>g.name); const progress=goals.map(g=>Math.min(100, Math.round((Number(g.current||0) / (Number(g.target||1))) * 100))); if(!savTrend){ savTrend = new Chart(document.getElementById('savings-trend'), { type:'line', data:{ labels, datasets:[{label:'Savings Trend', data:progress}]}, options:{responsive:true}}); } else { savTrend.data.labels=labels; savTrend.data.datasets[0].data=p    if(!repIncome){ repIncome=setupChart(document.getElementById('rep-income'),'Income'); }
+    if(!repExpenses){ repExpenses=setupChart(document.getElementById('rep-expenses'),'Expenses'); }
+    if(!repSavings){ repSavings=setupChart(document.getElementById('rep-savings'),'Savings'); }
+  }
+
+  // ===== Savings Charts (finish the cut-off) =====
+  function drawSavingsCharts(goals){
+    const labels=goals.map(g=>g.name);
+    const progress=goals.map(g=>Math.min(100, Math.round((Number(g.current||0)/(Number(g.target||1)))*100)));
+    if(!savTrend){
+      savTrend=new Chart(document.getElementById('savings-trend'),{
+        type:'line',
+        data:{labels, datasets:[{label:'Savings Trend', data:progress}]},
+        options:{responsive:true}
+      });
+    }else{
+      savTrend.data.labels=labels;
+      savTrend.data.datasets[0].data=progress;
+      savTrend.update();
+    }
+    if(!goalsProgress){
+      goalsProgress=new Chart(document.getElementById('goals-progress'),{
+        type:'bar',
+        data:{labels, datasets:[{label:'% to Target', data:progress}]},
+        options:{responsive:true}
+      });
+    }else{
+      goalsProgress.data.labels=labels;
+      goalsProgress.data.datasets[0].data=progress;
+      goalsProgress.update();
+    }
+  }
+
+  // ===== Aggregation Helpers (bi-weekly / monthly / yearly) =====
+  function rangeKey(dateStr, mode){
+    const d=new Date(dateStr);
+    if(Number.isNaN(d)) return 'Unknown';
+    const y=d.getFullYear();
+    const m=String(d.getMonth()+1).padStart(2,'0');
+    const day=d.getDate();
+    if(mode==='yearly') return String(y);
+    if(mode==='biweekly'){
+      // 1–15, 16–end
+      const half = day<=15 ? 'H1' : 'H2';
+      return `${y}-${m}-${half}`;
+    }
+    // monthly
+    return `${y}-${m}`;
+  }
+  function aggregateSeries(txs, mode){
+    const agg={income:{}, expense:{}, savings:{}};
+    for(const t of txs){
+      const k=rangeKey(t.date||'', mode);
+      const cat=(t.category||'').toLowerCase();
+      if(!agg[cat]) continue;
+      agg[cat][k]=(agg[cat][k]||0)+Number(t.amount||0);
+    }
+    const allKeys=new Set([...Object.keys(agg.income), ...Object.keys(agg.expense), ...Object.keys(agg.savings)]);
+    const labels=[...allKeys].sort();
+    const series={
+      labels,
+      income:labels.map(k=>agg.income[k]||0),
+      expense:labels.map(k=>agg.expense[k]||0),
+      savings:labels.map(k=>agg.savings[k]||0),
+    };
+    return series;
+  }
+  async function updateChartsAggregate(){
+    const txs=await allItems('transactions');
+    const series=aggregateSeries(txs, runtime.aggregate);
+    if(chartIncome){
+      chartIncome.data.labels=series.labels;
+      chartIncome.data.datasets[0].data=series.income;
+      chartIncome.update();
+    }
+    if(chartExpenses){
+      chartExpenses.data.labels=series.labels;
+      chartExpenses.data.datasets[0].data=series.expense;
+      chartExpenses.update();
+    }
+    if(chartSavings){
+      chartSavings.data.labels=series.labels;
+      chartSavings.data.datasets[0].data=series.savings;
+      chartSavings.update();
+    }
+    if(repIncome){
+      repIncome.data.labels=series.labels;
+      repIncome.data.datasets[0].data=series.income;
+      repIncome.update();
+    }
+    if(repExpenses){
+      repExpenses.data.labels=series.labels;
+      repExpenses.data.datasets[0].data=series.expense;
+      repExpenses.update();
+    }
+    if(repSavings){
+      repSavings.data.labels=series.labels;
+      repSavings.data.datasets[0].data=series.savings;
+      repSavings.update();
+    }
+  }
+
+  // ===== Reports (explicit redraw) =====
+  async function drawReports(){ await updateChartsAggregate(); }
+
+  // ===== Notifications: check due bills & events =====
+  async function checkDueNotifications(){
+    const [bills, events]= await Promise.all([allItems('bills'), allItems('events')]);
+    const nowD=new Date();
+    const todayISO=nowD.toISOString().slice(0,10);
+    // Bills due within 2 days (this month)
+    const dueSoonBills=(bills||[]).filter(b=>{
+      const dueDay=Number(b.due||0);
+      if(!dueDay) return false;
+      const dueDate=new Date(nowD.getFullYear(), nowD.getMonth(), dueDay);
+      const diff=(dueDate - nowD)/86400000;
+      return diff>=0 && diff<=2;
     });
-
-    // small reports chart
-    const rctx = document.getElementById('chart-reports').getContext('2d');
-    if(reportsChart) reportsChart.destroy();
-    reportsChart = new Chart(rctx, { type:'doughnut', data:{ labels:['Income','Expenses','Savings'], datasets:[{ data:[inc[inc.length-1]||0, exp[exp.length-1]||0, sav[sav.length-1]||0 ], backgroundColor:['#ffd6e8','#c6e2ff','#b5ead7'], hoverOffset:6 }] }, options:{ cutout:'60%', plugins:{ legend:{position:'bottom'} } } });
+    if(dueSoonBills.length){ notify(`Bills due soon: ${dueSoonBills.map(b=>b.name).join(', ')}`); }
+    // Events today
+    const todayEvents=(events||[]).filter(e=>e.date===todayISO);
+    if(todayEvents.length){ notify(`Today: ${todayEvents.map(e=>e.title).join(', ')}`); }
   }
 
-  /* ---------- Modal helpers & CRUD ---------- */
-  function openModal(id){ const m=$('#'+id); m.classList.add('open'); m.style.display='flex'; m.classList.remove('hidden'); }
-  function closeModal(id){ const m=$('#'+id); m.classList.remove('open'); m.style.display='none'; m.classList.add('hidden'); }
-
-  // Transaction modal
-  let editingTx=null;
-  $('#open-tx-modal').onclick = ()=> { editingTx=null; $('#tx-form-date').value = todayISO(); $('#tx-form-desc').value=''; $('#tx-form-cat').value=''; $('#tx-form-amt').value=''; $('#tx-form-tags').value=''; $('#tx-form-status').value='planned'; $('#tx-delete-btn').classList.add('hidden'); openModal('modal-transaction'); };
-  function openTransactionModal(id){
-    const t = state.transactions.find(x=>x.id===id); if(!t) return;
-    editingTx = t.id; $('#tx-form-date').value = t.date; $('#tx-form-desc').value = t.desc; $('#tx-form-cat').value = t.cat; $('#tx-form-amt').value = t.amt; $('#tx-form-tags').value = (t.tags||[]).join(','); $('#tx-form-status').value = t.status || 'planned'; $('#tx-delete-btn').classList.remove('hidden'); openModal('modal-transaction');
+  // ===== Tabs Navigation =====
+  const panels=[...document.querySelectorAll('main > section')];
+  function showPanel(id){
+    panels.forEach(p=>p.id===id ? SHOW(p) : HIDE(p));
+    document.querySelectorAll('.tab-btn').forEach(b=>{
+      const on = b.dataset.panel===id;
+      b.setAttribute('aria-selected', on?'true':'false');
+    });
+    // if we switch to reports, ensure charts are ready
+    if(id==='panel-reports'){ ensureCharts(); drawReports(); }
   }
-  $('#tx-cancel-btn').onclick = ()=> closeModal('modal-transaction');
-  $('#tx-save-btn').onclick = ()=> {
-    const tx = { id: editingTx || uid(), date: $('#tx-form-date').value||todayISO(), desc: $('#tx-form-desc').value||'Untitled', cat: $('#tx-form-cat').value||'Misc', amt: Number($('#tx-form-amt').value)||0, tags: ($('#tx-form-tags').value||'').split(',').map(x=>x.trim()).filter(Boolean), status: $('#tx-form-status').value||'planned', type: (Number($('#tx-form-amt').value)>=0)? 'income': 'expense' };
-    if(editingTx){ const idx=state.transactions.findIndex(x=>x.id===editingTx); if(idx>-1) state.transactions[idx]=tx; editingTx=null; } else state.transactions.push(tx);
-    persist(); closeModal('modal-transaction'); renderAll();
-  };
-  $('#tx-delete-btn').onclick = ()=> { if(!editingTx) return; if(confirm('Delete transaction?')){ state.transactions=state.transactions.filter(x=>x.id!==editingTx); editingTx=null; persist(); closeModal('modal-transaction'); renderAll(); } };
+  document.querySelectorAll('.tab-btn').forEach(btn=>{
+    btn.addEventListener('click',()=> showPanel(btn.dataset.panel));
+  });
+  // quick "Manage" links jump
+  document.querySelectorAll('[data-panel-jump]').forEach(a=>{
+    a.addEventListener('click',e=>{ e.preventDefault(); showPanel(a.dataset.panelJump); });
+  });
 
-  // Job modal
-  let editingJob=null;
-  $('#add-job-btn').onclick = ()=> { editingJob=null; $('#job-form-company').value=''; $('#job-form-role').value=''; $('#job-form-salary').value=''; $('#job-form-paycycle').value='monthly'; $('#job-delete-btn').classList.add('hidden'); openModal('modal-job'); };
-  $('#job-cancel-btn').onclick = ()=> closeModal('modal-job');
-  $('#job-save-btn').onclick = ()=> {
-    const j = { id: editingJob||uid(), company: $('#job-form-company').value||'Company', role: $('#job-form-role').value||'Role', salary: Number($('#job-form-salary').value)||0, payCycle: $('#job-form-paycycle').value||'monthly' };
-    if(editingJob){ const idx=state.jobs.findIndex(x=>x.id===editingJob); if(idx>-1) state.jobs[idx]=j; editingJob=null; } else state.jobs.push(j);
-    persist(); closeModal('modal-job'); renderAll();
-  };
+  // ===== History Modal & Sub-tabs =====
+  const histModal=document.getElementById('history-modal');
+  document.getElementById('history-open-btn').addEventListener('click',()=> histModal.classList.add('active'));
+  document.getElementById('history-close-btn').addEventListener('click',()=> histModal.classList.remove('active'));
+  document.querySelectorAll('.hist-tab').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      document.querySelectorAll('.hist-tab').forEach(b=>b.setAttribute('aria-selected','false'));
+      btn.setAttribute('aria-selected','true');
+      const dest=btn.dataset.hist;
+      ['recent','income','savings','expenses','prevpay','currpay'].forEach(k=>{
+        const el=document.getElementById(`hist-${k}`);
+        k===dest ? SHOW(el) : HIDE(el);
+      });
+    });
+  });
 
-  // Event modal
-  let editingEvent=null;
-  function openEventModal(id){ const ev = state.events.find(e=>e.id===id); if(!ev) return; editingEvent = ev.id; $('#event-form-title').value = ev.title; $('#event-form-notes').value = ev.notes; $('#event-form-date').value = ev.date; $('#event-delete-btn').classList.remove('hidden'); openModal('modal-event'); }
-  $('#event-save-btn').onclick = ()=> {
-    const title = $('#event-form-title').value||'Event'; const notes = $('#event-form-notes').value||''; const date = $('#event-form-date').value||todayISO();
-    if(editingEvent){ const idx=state.events.findIndex(e=>e.id===editingEvent); if(idx>-1){ state.events[idx].title=title; state.events[idx].notes=notes; state.events[idx].date=date; state.events[idx].emoji=emojiForTitle(title); editingEvent=null; } }
-    else { state.events.push({ id:uid(), title, notes, date, emoji: emojiForTitle(title) }); scheduleEventNotification({title,notes,date}); }
-    persist(); closeModal('modal-event'); renderAll();
-  };
-  $('#event-cancel-btn').onclick = ()=> { editingEvent=null; closeModal('modal-event'); };
-  $('#event-delete-btn').onclick = ()=> { if(!editingEvent) return; if(confirm('Delete event?')){ state.events=state.events.filter(e=>e.id!==editingEvent); editingEvent=null; persist(); closeModal('modal-event'); renderAll(); } };
+  // ===== Transaction Modal Handlers =====
+  const txModal=document.getElementById('tx-modal');
+  const txForm=document.getElementById('tx-form');
+  let editingTxId=null;
 
-  /* ---------- Event notifications (9:00 AM Manila) ---------- */
-  function msUntilManila9(dateIso){
-    // dateIso: 'YYYY-MM-DD'
-    const t = new Date(dateIso + 'T09:00:00'); // interpret as local — convert via toLocaleString trick to get Manila time millis
-    const man9 = new Date(t.toLocaleString('en-US',{timeZone:TZ}));
-    return man9.getTime() - Date.now();
+  function openTxModal(t){
+    editingTxId=t?.id||null;
+    txForm.reset();
+    if(t){
+      document.getElementById('tx-date').value=t.date||'';
+      document.getElementById('tx-desc').value=t.description||'';
+      document.getElementById('tx-category').value=t.category||'income';
+      document.getElementById('tx-amount').value=t.amount||'';
+      document.getElementById('tx-balance-after').value=t.balanceAfter||'';
+      document.getElementById('tx-linked').value=t.linked||'';
+      document.getElementById('tx-notes').value=t.notes||'';
+      document.getElementById('tx-tags').value=t.tags||'';
+      document.getElementById('tx-status').value=t.status||'actual';
+    }
+    txModal.classList.add('active');
   }
-  function scheduleEventNotification(ev){
+  function closeTxModal(){ txModal.classList.remove('active'); }
+
+  document.getElementById('tx-add-btn').addEventListener('click',()=> openTxModal({date:new Date().toISOString().slice(0,10)}));
+  document.getElementById('tx-cancel-btn').addEventListener('click', closeTxModal);
+
+  txForm.addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const t={
+      id: editingTxId || uid(),
+      date: document.getElementById('tx-date').value,
+      description: document.getElementById('tx-desc').value,
+      category: document.getElementById('tx-category').value,
+      amount: Number(document.getElementById('tx-amount').value||0),
+      balanceAfter: document.getElementById('tx-balance-after').value,
+      linked: document.getElementById('tx-linked').value,
+      notes: document.getElementById('tx-notes').value,
+      tags: document.getElementById('tx-tags').value,
+      status: document.getElementById('tx-status').value
+    };
+    await saveItem('transactions', t);
+    pushHistory(); toast('Saved transaction'); closeTxModal(); renderAll();
+  });
+  document.getElementById('tx-delete-btn').addEventListener('click', async ()=>{
+    if(!editingTxId) return closeTxModal();
+    await delItem('transactions', editingTxId);
+    pushHistory(); toast('Deleted'); closeTxModal(); renderAll();
+  });
+  // table edit/delete buttons
+  document.getElementById('tx-tbody').addEventListener('click', async (e)=>{
+    const editBtn=e.target.closest('[data-edit-tx]'); const delBtn=e.target.closest('[data-del-tx]');
+    if(editBtn){
+      const id=editBtn.getAttribute('data-edit-tx');
+      const all=await allItems('transactions'); const t=all.find(x=>x.id===id);
+      openTxModal(t);
+    }else if(delBtn){
+      const id=delBtn.getAttribute('data-del-tx');
+      await delItem('transactions', id); pushHistory(); renderAll();
+    }
+  });
+  // filters live
+  ['tx-search','tx-start','tx-end','tx-category-filter','tx-tags-filter'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.addEventListener('input', renderTransactions);
+  });
+
+  // ===== Event Modal Handlers / Calendar =====
+  const eventModal=document.getElementById('event-modal');
+  const eventForm=document.getElementById('event-form');
+  let editingEventId=null;
+
+  function openEventModal(ev){
+    editingEventId=ev?.id||null;
+    eventForm.reset();
+    document.getElementById('event-title').value=ev?.title||'';
+    document.getElementById('event-date').value=ev?.date||new Date().toISOString().slice(0,10);
+    document.getElementById('event-notes').value=ev?.notes||'';
+    eventModal.classList.add('active');
+  }
+  function closeEventModal(){ eventModal.classList.remove('active'); }
+  document.getElementById('event-add-btn').addEventListener('click',()=> openEventModal());
+  document.getElementById('event-cancel-btn').addEventListener('click', closeEventModal);
+  document.getElementById('event-save-btn').addEventListener('click', async (e)=>{
+    e.preventDefault();
+    const ev={
+      id: editingEventId || uid(),
+      title: document.getElementById('event-title').value,
+      date: document.getElementById('event-date').value,
+      notes: document.getElementById('event-notes').value
+    };
+    await saveItem('events', ev); pushHistory(); toast('Saved'); closeEventModal(); renderAll();
+  });
+  document.getElementById('event-delete-btn').addEventListener('click', async ()=>{
+    if(!editingEventId) return closeEventModal();
+    await delItem('events', editingEventId); pushHistory(); toast('Deleted'); closeEventModal(); renderAll();
+  });
+  // calendar inline add/edit
+  document.getElementById('panel-calendar').addEventListener('click', async (e)=>{
+    const add=e.target.closest('[data-add-event-on]'); const edit=e.target.closest('[data-edit-event]');
+    if(add){ openEventModal({date:add.getAttribute('data-add-event-on')}); }
+    if(edit){
+      const id=edit.getAttribute('data-edit-event');
+      const evs=await allItems('events'); const ev=evs.find(x=>x.id===id);
+      openEventModal(ev);
+    }
+  });
+
+  // ===== Jobs & Bills =====
+  const jobForm=document.getElementById('job-form');
+  jobForm.addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const j={ id:uid(), company:document.getElementById('job-company').value,
+      salary:Number(document.getElementById('job-salary').value||0),
+      cycle:document.getElementById('job-cycle').value,
+      shift:document.getElementById('job-shift').value };
+    await saveItem('jobs', j); pushHistory(); jobForm.reset(); renderJobs(); renderQuickSummary(); renderWorkdays();
+  });
+  document.getElementById('job-cancel-btn').addEventListener('click', ()=> jobForm.reset());
+  document.getElementById('job-list').addEventListener('click', async (e)=>{
+    const del=e.target.closest('[data-del-job]'); const edit=e.target.closest('[data-edit-job]');
+    if(del){ await delItem('jobs', del.getAttribute('data-del-job')); pushHistory(); renderJobs(); renderQuickSummary(); renderWorkdays(); }
+    if(edit){
+      const id=edit.getAttribute('data-edit-job'); const jobs=await allItems('jobs'); const j=jobs.find(x=>x.id===id);
+      if(!j) return;
+      document.getElementById('job-company').value=j.company||''; 
+      document.getElementById('job-salary').value=j.salary||''; 
+      document.getElementById('job-cycle').value=j.cycle||'bi-weekly';
+      document.getElementById('job-shift').value=j.shift||'';
+      await delItem('jobs', id); // simple edit: re-save on submit
+    }
+  });
+
+  const billForm=document.getElementById('bill-form');
+  billForm.addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const b={ id:uid(), name:document.getElementById('bill-name').value,
+      amount:Number(document.getElementById('bill-amount').value||0),
+      due:Number(document.getElementById('bill-due').value||1),
+      auto:document.getElementById('bill-auto').checked };
+    await saveItem('bills', b); pushHistory(); billForm.reset(); renderBills(); renderQuickSummary();
+  });
+  document.getElementById('bill-cancel-btn').addEventListener('click', ()=> billForm.reset());
+  document.getElementById('bill-list').addEventListener('click', async (e)=>{
+    const del=e.target.closest('[data-del-bill]'); const edit=e.target.closest('[data-edit-bill]');
+    if(del){ await delItem('bills', del.getAttribute('data-del-bill')); pushHistory(); renderBills(); renderQuickSummary(); }
+    if(edit){
+      const id=edit.getAttribute('data-edit-bill'); const bills=await allItems('bills'); const b=bills.find(x=>x.id===id);
+      if(!b) return;
+      document.getElementById('bill-name').value=b.name||'';
+      document.getElementById('bill-amount').value=b.amount||'';
+      document.getElementById('bill-due').value=b.due||'';
+      document.getElementById('bill-auto').checked=!!b.auto;
+      await delItem('bills', id);
+    }
+  });
+
+  // ===== Budgets =====
+  document.getElementById('budget-add-row-btn').addEventListener('click', async ()=>{
+    const category=prompt('Budget category (e.g., groceries)'); if(!category) return;
+    const planned=Number(prompt('Planned amount')||0);
+    const paycheck=prompt('Linked paycheck label (optional)')||'';
+    await saveItem('budgets', {id:uid(), category, planned, paycheck});
+    pushHistory(); renderBudgets();
+  });
+  document.getElementById('budget-tbody').addEventListener('click', async (e)=>{
+    const del=e.target.closest('[data-del-budget]'); const edit=e.target.closest('[data-edit-budget]');
+    if(del){ await delItem('budgets', del.getAttribute('data-del-budget')); pushHistory(); renderBudgets(); }
+    if(edit){
+      const id=edit.getAttribute('data-edit-budget'); const rows=await allItems('budgets'); const r=rows.find(x=>x.id===id); if(!r) return;
+      const category=prompt('Category', r.category)||r.category;
+      const planned=Number(prompt('Planned', r.planned)||r.planned);
+      const paycheck=prompt('Linked paycheck', r.paycheck||'')||r.paycheck||'';
+      await saveItem('budgets',{...r, id, category, planned, paycheck}); pushHistory(); renderBudgets();
+    }
+  });
+
+  // ===== Goals =====
+  document.getElementById('goal-add-btn').addEventListener('click', async ()=>{
+    const name=prompt('Goal name'); if(!name) return;
+    const target=Number(prompt('Target amount')||0);
+    const current=Number(prompt('Current amount')||0);
+    const date=prompt('Target date (YYYY-MM-DD)')||'';
+    const recurringAmt=Number(prompt('Recurring amount (optional)')||0)||null;
+    const recurringFreq=recurringAmt? (prompt('Frequency (e.g., monthly, weekly)')||'monthly') : '';
+    await saveItem('goals',{id:uid(), name, target, current, date, recurringAmt, recurringFreq});
+    pushHistory(); renderSavings();
+  });
+  document.getElementById('goal-tbody').addEventListener('click', async (e)=>{
+    const del=e.target.closest('[data-del-goal]'); const edit=e.target.closest('[data-edit-goal]');
+    if(del){ await delItem('goals', del.getAttribute('data-del-goal')); pushHistory(); renderSavings(); }
+    if(edit){
+      const id=edit.getAttribute('data-edit-goal'); const rows=await allItems('goals'); const g=rows.find(x=>x.id===id); if(!g) return;
+      const name=prompt('Name', g.name)||g.name;
+      const target=Number(prompt('Target', g.target)||g.target);
+      const current=Number(prompt('Current', g.current)||g.current);
+      const date=prompt('Target date', g.date||'')||g.date||'';
+      const recurringAmt=Number(prompt('Recurring amount', g.recurringAmt||0)||g.recurringAmt||0)||null;
+      const recurringFreq=recurringAmt? (prompt('Frequency', g.recurringFreq||'monthly')||'monthly') : '';
+      await saveItem('goals',{...g, id, name, target, current, date, recurringAmt, recurringFreq}); pushHistory(); renderSavings();
+    }
+  });
+
+  // ===== Workdays / Salary =====
+  const workdayForm=document.getElementById('workday-form');
+  workdayForm.addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const w={ id:uid(),
+      date:document.getElementById('wd-date').value,
+      job:document.getElementById('wd-job').value,
+      hours:Number(document.getElementById('wd-hours').value||0),
+      ot:Number(document.getElementById('wd-ot').value||0),
+      deduct:Number(document.getElementById('wd-deduct').value||0)};
+    await saveItem('workdays', w); pushHistory(); workdayForm.reset(); renderWorkdays();
+  });
+  document.getElementById('workday-list').addEventListener('click', async (e)=>{
+    const del=e.target.closest('[data-del-workday]'); const edit=e.target.closest('[data-edit-workday]');
+    if(del){ await delItem('workdays', del.getAttribute('data-del-workday')); pushHistory(); renderWorkdays(); }
+    if(edit){
+      const id=edit.getAttribute('data-edit-workday'); const wds=await allItems('workdays'); const w=wds.find(x=>x.id===id); if(!w) return;
+      document.getElementById('wd-date').value=w.date||'';
+      document.getElementById('wd-job').value=w.job||'';
+      document.getElementById('wd-hours').value=w.hours||'';
+      document.getElementById('wd-ot').value=w.ot||'';
+      document.getElementById('wd-deduct').value=w.deduct||'';
+      await delItem('workdays', id);
+    }
+  });
+  document.getElementById('paycheck-compute-btn').addEventListener('click', computePaystubs);
+  document.getElementById('paycheck-sync-btn').addEventListener('click', syncPaycheck);
+
+  // ===== Profile & Settings =====
+  async function loadState(){
     try{
-      const ms = msUntilManila9(ev.date);
-      if(ms>0 && ms < 1000*60*60*24*365){
-        setTimeout(()=> { notify(`${ev.emoji} ${ev.title}`, ev.notes || 'Reminder'); playChime(); }, ms);
-      }
-    }catch(e){}
+      const s=await new Promise((res)=>{ const r=txStore('state').get('settings'); r.onsuccess=()=>res(r.result); r.onerror=()=>res(null); });
+      const p=await new Promise((res)=>{ const r=txStore('state').get('profile'); r.onsuccess=()=>res(r.result); r.onerror=()=>res(null); });
+      if(s && s.avgWorkdays) runtime.settings.avgWorkdays=s.avgWorkdays;
+      if(p){ runtime.profile=p; }
+      document.getElementById('avg-workdays').value=runtime.settings.avgWorkdays;
+      document.getElementById('profile-name').value=runtime.profile.name||'';
+      document.getElementById('profile-phone').value=runtime.profile.phone||'';
+      document.getElementById('profile-email').value=runtime.profile.email||'';
+    }catch{}
   }
+  document.getElementById('settings-save-btn').addEventListener('click', async ()=>{
+    runtime.settings.avgWorkdays=Number(document.getElementById('avg-workdays').value||22);
+    await new Promise((res)=>{ txStore('state','readwrite').put({id:'settings', ...runtime.settings}).onsuccess=res; });
+    toast('Settings saved'); computePaystubs();
+  });
+  document.getElementById('settings-cancel-btn').addEventListener('click', ()=>{ document.getElementById('avg-workdays').value=runtime.settings.avgWorkdays; });
 
-  function scheduleAllEventNotifications(){
-    state.events.forEach(ev => scheduleEventNotification(ev));
-  }
+  document.getElementById('profile-save-btn').addEventListener('click', async ()=>{
+    runtime.profile={
+      name:document.getElementById('profile-name').value,
+      phone:document.getElementById('profile-phone').value,
+      email:document.getElementById('profile-email').value
+    };
+    await new Promise((res)=>{ txStore('state','readwrite').put({id:'profile', ...runtime.profile}).onsuccess=res; });
+    toast('Profile saved');
+  });
+  document.getElementById('profile-cancel-btn').addEventListener('click', ()=>{
+    document.getElementById('profile-name').value=runtime.profile.name||'';
+    document.getElementById('profile-phone').value=runtime.profile.phone||'';
+    document.getElementById('profile-email').value=runtime.profile.email||'';
+  });
 
-  /* Notifications & chime */
-  function playChime(){ try{ if(localStorage.getItem('lexi_mute')==='true') return; $('#kitten-chime').currentTime=0; $('#kitten-chime').play().catch(()=>{}); }catch(e){} }
-  function notify(title, body=''){ try{ if('Notification' in window){ if(Notification.permission==='granted'){ new Notification(title,{body}); } else if(Notification.permission==='default'){ Notification.requestPermission().then(p => { if(p==='granted') new Notification(title,{body}); }); } } }catch(e){} }
+  // ===== Export / Import / Backup / Restore / Clear =====
+  document.getElementById('export-json-btn').addEventListener('click', exportJSON);
+  document.getElementById('export-csv-btn').addEventListener('click', exportCSV);
+  document.getElementById('backup-btn').addEventListener('click', backupEncrypted);
+  document.getElementById('restore-btn').addEventListener('click', restoreEncrypted);
 
-  /* ---------- Backup / Restore (AES-GCM) ---------- */
-  async function deriveKey(password, salt){
-    const enc = new TextEncoder().encode(password);
-    const base = await crypto.subtle.importKey('raw', enc, 'PBKDF2', false, ['deriveKey']);
-    return crypto.subtle.deriveKey({ name:'PBKDF2', salt, iterations:100000, hash:'SHA-256'}, base, {name:'AES-GCM', length:256}, false, ['encrypt','decrypt']);
-  }
-  $('#backup-btn').onclick = async () => {
-    const pwd = prompt('Enter password to encrypt backup:'); if(!pwd) return;
-    const salt = crypto.getRandomValues(new Uint8Array(16)); const iv = crypto.getRandomValues(new Uint8Array(12));
-    const key = await deriveKey(pwd, salt);
-    const enc = await crypto.subtle.encrypt({name:'AES-GCM', iv}, key, new TextEncoder().encode(JSON.stringify(state)));
-    const blob = new Blob([salt, iv, new Uint8Array(enc)], {type:'application/octet-stream'});
-    const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href=url; a.download='lexi_backup.lexi'; a.click(); URL.revokeObjectURL(url); toast('Backup created');
-  };
-  $('#restore-btn').onclick = async () => {
-    const fi = document.createElement('input'); fi.type='file'; fi.accept='.lexi'; fi.onchange = async e => {
-      const f = e.target.files[0]; if(!f) return;
-      const pwd = prompt('Password to decrypt backup:'); if(!pwd) return;
-      const arr = new Uint8Array(await f.arrayBuffer());
-      const salt = arr.slice(0,16); const iv = arr.slice(16,28); const data = arr.slice(28);
+  document.getElementById('import-json-btn').addEventListener('click', async ()=>{
+    const inp=document.createElement('input'); inp.type='file'; inp.accept='.json,application/json';
+    inp.onchange=async ()=>{
       try{
-        const key = await deriveKey(pwd, salt);
-        const dec = await crypto.subtle.decrypt({name:'AES-GCM', iv}, key, data);
-        state = JSON.parse(new TextDecoder().decode(dec)); await idbPut('state', state); renderAll(); toast('Restore OK');
-      }catch(err){ alert('Restore failed (bad password or corrupt file)'); }
-    }; fi.click();
-  };
+        const txt=await inp.files[0].text(); const j=JSON.parse(txt);
+        if(Array.isArray(j)){ // assume array of transactions
+          for(const t of j){ await saveItem('transactions', { id: t.id||uid(), ...t}); }
+        }else if(j.transactions || j.jobs || j.bills){ // maybe a full snapshot
+          await restoreSnapshot(j);
+        }else{
+          throw new Error('Unrecognized JSON');
+        }
+        pushHistory(); toast('Imported');
+        renderAll();
+      }catch{ toast('Import failed'); }
+    };
+    inp.click();
+  });
 
-  /* ---------- Export / Import JSON ---------- */
-  $('#export-json').onclick = () => {
-    const blob = new Blob([JSON.stringify(state,null,2)], {type:'application/json'});
-    const u = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = u; a.download='lexi_export.json'; a.click(); URL.revokeObjectURL(u); toast('Exported JSON');
-  };
-  $('#import-json').onclick = () => {
-    const fi = document.createElement('input'); fi.type='file'; fi.accept='application/json'; fi.onchange = async e => {
-      const txt = await e.target.files[0].text(); try{ state = JSON.parse(txt); await idbPut('state', state); renderAll(); toast('Imported'); }catch(err){ alert('Invalid JSON'); }
-    }; fi.click();
-  };
+  document.getElementById('clear-data-btn').addEventListener('click', async ()=>{
+    if(!confirm('Clear ALL data? This cannot be undone.')) return;
+    const stores=['transactions','jobs','bills','budgets','goals','events','workdays','state'];
+    await Promise.all(stores.map(st=>new Promise((resolve)=>{ txStore(st,'readwrite').clear().onsuccess=resolve; })));
+    historyStack.length=0; redoStack.length=0;
+    toast('Cleared'); renderAll();
+  });
 
-  /* ---------- Paycheck compute (simple, live) ---------- */
-  function hourlyRate(monthlyBase, avgWorkdays, hoursPerDay=8){ const denom = Number(avgWorkdays||22) * Number(hoursPerDay||8); return denom? monthlyBase/denom : 0; }
-  $('#compute-paycheck-btn').onclick = () => {
-    // simple demo: take first job
-    const job = state.jobs[0]; if(!job){ alert('Add a job first'); return; }
-    const hr = hourlyRate(job.salary, Number($('#setting-workdays').value||22), 8);
-    $('#paystub-preview').textContent = `Hourly: ₱${currency(hr)} — Monthly: ₱${currency(job.salary)}`; toast('Paycheck computed (preview)');
-  };
+  // ===== Aggregate Toggles (dashboard & reports) =====
+  function setAggregate(mode){
+    runtime.aggregate=mode;
+    document.getElementById('agg-biweekly').classList.toggle('bg-[var(--pink-300)]', mode==='biweekly');
+    document.getElementById('agg-monthly').classList.toggle('bg-[var(--pink-300)]', mode==='monthly');
+    document.getElementById('agg-yearly').classList.toggle('bg-[var(--pink-300)]', mode==='yearly');
+    document.getElementById('rep-biweekly').classList.toggle('bg-[var(--pink-300)]', mode==='biweekly');
+    document.getElementById('rep-monthly').classList.toggle('bg-[var(--pink-300)]', mode==='monthly');
+    document.getElementById('rep-yearly').classList.toggle('bg-[var(--pink-300)]', mode==='yearly');
+    updateChartsAggregate();
+  }
+  document.getElementById('agg-biweekly').addEventListener('click', ()=> setAggregate('biweekly'));
+  document.getElementById('agg-monthly').addEventListener('click', ()=> setAggregate('monthly'));
+  document.getElementById('agg-yearly').addEventListener('click', ()=> setAggregate('yearly'));
+  document.getElementById('rep-biweekly').addEventListener('click', ()=> setAggregate('biweekly'));
+  document.getElementById('rep-monthly').addEventListener('click', ()=> setAggregate('monthly'));
+  document.getElementById('rep-yearly').addEventListener('click', ()=> setAggregate('yearly'));
 
-  /* ---------- Next items (bills / events / paydays) ---------- */
-  function scheduleNextItems(){
-    const items = [];
-    // bills due within 3 days (simple by day-of-month)
-    const today = new Date(new Date().toLocaleString('en-PH',{timeZone:TZ})); const day = today.getDate();
-    state.bills.forEach(b => { if(Math.abs(b.day - day) <= 3) items.push(`Bill: ${b.name} • ₱${currency(b.amount)}`); });
-    // events today or soon
-    state.events.forEach(e => { const d = new Date(e.date); const diff = Math.round((d - today)/ (1000*60*60*24)); if(Math.abs(diff) <= 2) items.push(`Event: ${e.emoji} ${e.title} on ${e.date}`); });
-    const el = $('#next-items'); el.innerHTML = items.length? items.join('<br>'): '<span class="small">No upcoming bills or events</span>';
+  // ===== Keyboard: Undo/Redo =====
+  window.addEventListener('keydown', (e)=>{
+    if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='z'){ e.preventDefault(); undo(); }
+    if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='y'){ e.preventDefault(); redo(); }
+  });
+
+  // ===== Main render =====
+  async function renderAll(){
+    setQuote(); tickClock(); fetchWeather(); fetchHoliday();
+    ensureCharts();
+    await Promise.all([
+      computeSummaries(),
+      renderBudgets(),
+      renderSavings(),
+      renderCalendar(),
+      renderTransactions(),
+      renderJobs(),
+      renderBills(),
+      renderQuickSummary(),
+      renderWorkdays(),
+      renderHistory()
+    ]);
+    await updateChartsAggregate();
   }
 
-  /* ---------- Tabs wiring (FIXED) ---------- */
-  $$('.tab-btn').forEach(b => b.addEventListener('click', () => {
-    $$('.tab-btn').forEach(x=>x.classList.remove('active'));
-    b.classList.add('active');
-    const tab = b.dataset.tab;
-    $$('main section').forEach(s => s.classList.add('hidden'));
-    const panel = document.getElementById('panel-'+tab);
-    if(panel) panel.classList.remove('hidden');
-    // render specific
-    if(tab==='calendar') renderCalendar();
-    if(tab==='transactions') renderTransactions($('#tx-filter').value);
-    if(tab==='reports') renderCharts();
-  }));
-
-  /* calendar nav */
-  $('#prev-month').onclick = ()=> { calendarDate.setMonth(calendarDate.getMonth()-1); renderCalendar(); };
-  $('#next-month').onclick = ()=> { calendarDate.setMonth(calendarDate.getMonth()+1); renderCalendar(); };
-
-  /* tx filter */
-  $('#tx-filter').addEventListener('input', (e)=> renderTransactions(e.target.value));
-
-  /* sound toggle */
-  $('#sound-toggle').onclick = ()=> { const m = localStorage.getItem('lexi_mute')==='true'; localStorage.setItem('lexi_mute', (!m).toString()); toast(m ? 'Sound unmuted' : 'Sound muted'); };
-
-  /* open modals */
-  $('#open-job-modal').onclick = ()=> $('#add-job-btn').click();
-  $('#open-tx-modal').onclick = ()=> {};
-
-  /* event add shortcut: double-click date area to add event (small UX) */
-  $('#calendar-grid').addEventListener('dblclick', ()=> { $('#event-form-date').value = todayISO(); openModal('modal-event'); });
-
-  /* ---------- Service Worker registration (if available) ---------- */
-  if('serviceWorker' in navigator){
-    navigator.serviceWorker.register('/lexi-sw.js').catch(()=> console.warn('SW reg failed'));
-    navigator.serviceWorker.addEventListener && navigator.serviceWorker.addEventListener('message', ev => {
-      if(ev.data?.type === 'play-chime') playChime();
-      if(ev.data?.type === 'background-sync') { toast('Background sync requested'); }
-    });
-  }
-
-  /* ---------- Weather & PH holiday (Open-Meteo & Nager.Date) ---------- */
-  async function fetchWeatherAndHolidays(){
-    try{
-      const w = await fetch('https://api.open-meteo.com/v1/forecast?latitude=7.1907&longitude=125.4553&current_weather=true&timezone=Asia%2FManila');
-      const jw = await w.json();
-      if(jw?.current_weather){ $('#davao-weather').textContent = `Davao: ${jw.current_weather.temperature}°C • ${jw.current_weather.windspeed} km/h`; }
-    }catch(e){ $('#davao-weather').textContent = 'Weather offline'; }
-    try{
-      const yr = new Date().getFullYear();
-      const res = await fetch(`https://date.nager.at/api/v3/PublicHolidays/${yr}/PH`);
-      const list = await res.json();
-      const today = todayISO();
-      const h = (list||[]).find(x=> x.date === today);
-      if(h) $('#phil-holiday').textContent = `Holiday: ${h.localName}`;
-    }catch(e){ $('#phil-holiday').textContent = ''; }
-  }
-  fetchWeatherAndHolidays(); setInterval(fetchWeatherAndHolidays, 1000*60*30);
-
-  /* ---------- Init: load state, seed, bind handlers ---------- */
-  async function boot(){
+  // ===== Init =====
+  (async function init(){
     await openDB();
-    await seedIfEmpty();
-    const s = await idbGet('state'); if(s) state=s;
-    // wire quick buttons
-    $('#add-bill-btn').onclick = ()=> { const name = prompt('Bill name:'); if(!name) return; const day=Number(prompt('Day of month (1-28):', '5')); const amt=Number(prompt('Amount:', '0')); state.bills.push({id:uid(), name, day, amount:amt, auto:true}); persist(); renderAll(); };
-    $('#add-budget-btn').onclick = ()=> { const cat = prompt('Category:'); const planned = Number(prompt('Planned amount:', '0')); if(!cat) return; state.budgets.push({id:uid(), cat, planned}); persist(); renderAll(); };
-    $('#add-savings-btn').onclick = ()=> { const name = prompt('Goal name:'); if(!name) return; const target = Number(prompt('Target amount:', '1000')); state.savings.push({id:uid(), name, target, current:0}); persist(); renderAll(); };
-    $('#open-job-modal').onclick = ()=> { $('#job-form-company').value=''; $('#job-form-role').value=''; $('#job-form-salary').value=''; $('#job-form-paycycle').value='monthly'; openModal('modal-job'); };
-    $('#add-job-btn').onclick = $('#open-job-modal').onclick;
-    $('#sync-paycheck-btn').onclick = ()=> toast('Paycheck sync simulated');
-    // profile edit
-    $('#edit-profile').onclick = ()=> { const n = prompt('Name', state.profile.name); const e = prompt('Email', state.profile.email); state.profile.name = n || state.profile.name; state.profile.email = e || state.profile.email; persist(); renderAll(); };
-    // event add
-    $('#calendar-grid').onclick = ()=> openModal('modal-event');
-    // register keyboard undo/redo
-    window.addEventListener('keydown', e => { if((e.ctrlKey||e.metaKey) && e.key==='z' && !e.shiftKey){ e.preventDefault(); undo(); } if((e.ctrlKey||e.metaKey) && (e.key==='Z' || (e.shiftKey && e.key==='Z'))){ e.preventDefault(); redo(); } });
-
-    // persisted state loaded
+    await loadState();
+    showPanel('panel-dashboard');
     renderAll();
-    scheduleAllEventNotifications();
-    // small paw particle on interactions:
-    document.addEventListener('click', (ev)=> spawnPaw(ev.clientX, ev.clientY));
-  }
-  boot();
+    ensureNotify(); scheduleNineAM();
+    pushHistory(); // initial snapshot
+  })();
 
-  /* ---------- Spawn paw particle ---------- */
-  function spawnPaw(x,y){
-    const d=document.createElement('div'); d.className='floating-paw'; d.textContent='🐾';
-    document.body.appendChild(d);
-    d.style.left = (x || (Math.random()*window.innerWidth)) + 'px';
-    d.style.top = (y || (window.innerHeight - 60)) + 'px';
-    d.style.transition = 'transform 1100ms ease-out, opacity 1100ms ease-out';
-    requestAnimationFrame(()=> { d.style.transform = 'translateY(-60px) scale(1.4)'; d.style.opacity='0'; });
-    setTimeout(()=> d.remove(), 1200);
-  }
-
-  /* ---------- Chart render stub (immediately schedule) ---------- */
-  function renderCharts(){ scheduleCharts(); }
-
-  /* ---------- Helpers for opening existing tx/job/event modals ---------- */
-  window.openTransactionModal = openTransactionModal;
-  window.openEventModal = openEventModal;
-
-  /* ---------- small utility to schedule event reminders at 9AM Manila for today items ---------- */
-  function scheduleTodayReminders(){
-    const today = todayISO();
-    state.events.filter(e=> e.date===today).forEach(ev => { const ms = msUntilManila9(ev.date); if(ms>0) setTimeout(()=> { notify(`${ev.emoji} ${ev.title}`, ev.notes); playChime(); }, ms); });
-  }
-  function msUntilManila9(dateIso){
-    try{
-      const t = new Date(dateIso + 'T09:00:00'); const man = new Date(t.toLocaleString('en-US',{timeZone:TZ})); return man.getTime() - Date.now();
-    }catch(e){ return -1; }
-  }
-
-  /* expose undo/redo for convenience */
-  window.lexi = { state, undo, redo, persist };
-
-})();
-</script>
+  </script>
 </body>
 </html>
