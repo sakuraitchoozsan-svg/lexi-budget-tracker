@@ -1,5 +1,7 @@
 // lexi-sw.js - Service Worker for Lexi’s Budget Tracker 🐾
-const CACHE_NAME = "lexi-cache-v1";
+const CACHE_NAME = "lexi-cache-v2";
+const OFFLINE_URL = "/index.html";
+
 const PRECACHE_ASSETS = [
   "/",
   "/index.html",
@@ -7,7 +9,7 @@ const PRECACHE_ASSETS = [
   "/assets/kitten-chime.mp3"
 ];
 
-// ===== Install Event =====
+// ===== Install =====
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE_ASSETS))
@@ -15,7 +17,7 @@ self.addEventListener("install", (event) => {
   self.skipWaiting();
 });
 
-// ===== Activate Event =====
+// ===== Activate =====
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
@@ -25,30 +27,37 @@ self.addEventListener("activate", (event) => {
   self.clients.claim();
 });
 
-// ===== Fetch Event =====
+// ===== Fetch =====
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
 
   event.respondWith(
     caches.match(event.request).then((cached) => {
-      const fetchPromise = fetch(event.request)
-        .then((response) => {
-          if (!response || response.status !== 200) return response;
-          const resClone = response.clone();
+      const network = fetch(event.request)
+        .then((res) => {
+          if (!res || res.status !== 200) return res;
+          let resClone = res.clone();
           caches.open(CACHE_NAME).then((cache) => cache.put(event.request, resClone));
-          return response;
+          return res;
         })
-        .catch(() => cached);
+        .catch(() => cached || caches.match(OFFLINE_URL));
 
-      return cached || fetchPromise;
+      return cached || network;
     })
   );
 });
 
-// ===== Background Sync (placeholder) =====
+// ===== Background Sync (demo) =====
 self.addEventListener("sync", (event) => {
   if (event.tag === "sync-data") {
-    event.waitUntil(self.registration.showNotification("🐾 Data synced!"));
+    event.waitUntil(
+      self.registration.showNotification("🐾 Lexi Tracker", {
+        body: "Your data was synced successfully!",
+        icon: "/assets/icon-192.png",
+        badge: "/assets/icon-192.png",
+        sound: "/assets/kitten-chime.mp3"
+      })
+    );
   }
 });
 
