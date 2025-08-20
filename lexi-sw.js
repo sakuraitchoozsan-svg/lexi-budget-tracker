@@ -1,193 +1,238 @@
-// lexi-sw.js
-// Service Worker for Lexi’s Budget Tracker
-// Supports: offline caching, IndexedDB autosave, cross-tab sync,
-// background sync of queued actions, notifications (due dates/paydays/events),
-// kitten chime sounds, and update messaging.
+/* lexi-sw.js
+   Service Worker for Lexi — Budget Tracker
+   - Caches app shell + assets (including /assets/kitten-chime.mp3)
+   - Stale-while-revalidate runtime caching for external APIs
+   - Sends messages to clients for updates, chime play, and background-sync
+   - Handles skipWaiting / clients.claim for updates
+*/
 
-const CACHE_VERSION = 'v3-2025-08-19';
-const CACHE_NAME = `lexi-cache-${CACHE_VERSION}`;
+/* Cache versioning */
+const CACHE_VERSION = 'v1';
+const APP_SHELL_CACHE = `lexi-shell-${CACHE_VERSION}`;
+const RUNTIME_CACHE = `lexi-runtime-${CACHE_VERSION}`;
+
+/* Assets to precache (add other static files as needed) */
 const PRECACHE_URLS = [
-  '/', '/index.html',
-  '/assets/kitten-chime.mp3',
+  '/', // root
+  '/index.html',
+  '/lexi-sw.js',
+  '/assets/kitten-chime.mp3', // referenced in index doc (kitten chime audio).
+  // CSS / CDN fallbacks (if you bundle or want to cache CDN assets)
   'https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css',
-  'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js'
+  'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js',
+  // Add other local static resources (icons, images) here
 ];
 
-// IndexedDB setup
-const IDB_DB = 'lexi_sw_db';
-const IDB_STORE = 'queue';
-
-function idbOpen() {
-  return new Promise((resolve, reject) => {
-    const rq = indexedDB.open(IDB_DB, 1);
-    rq.onupgradeneeded = (e) => {
-      const db = e.target.result;
-      if (!db.objectStoreNames.contains(IDB_STORE)) {
-        db.createObjectStore(IDB_STORE, { keyPath: 'id' });
-      }
-    };
-    rq.onsuccess = () => resolve(rq.result);
-    rq.onerror = () => reject(rq.error);
-  });
-}
-async function idbAdd(item) {
-  const db = await idbOpen();
-  return new Promise((res, rej) => {
-    const tx = db.transaction(IDB_STORE, 'readwrite');
-    tx.objectStore(IDB_STORE).put(item);
-    tx.oncomplete = () => res();
-    tx.onerror = () => rej(tx.error);
-  });
-}
-async function idbGetAll() {
-  const db = await idbOpen();
-  return new Promise((res, rej) => {
-    const tx = db.transaction(IDB_STORE, 'readonly');
-    const rq = tx.objectStore(IDB_STORE).getAll();
-    rq.onsuccess = () => res(rq.result || []);
-    rq.onerror = () => rej(rq.error);
-  });
-}
-async function idbDelete(id) {
-  const db = await idbOpen();
-  return new Promise((res, rej) => {
-    const tx = db.transaction(IDB_STORE, 'readwrite');
-    tx.objectStore(IDB_STORE).delete(id);
-    tx.oncomplete = () => res();
-    tx.onerror = () => rej(tx.error);
-  });
+/* Utility: broadcast message to all clients */
+async function broadcastToClients(message) {
+  const clientsList = await self.clients.matchAll({ includeUncontrolled: true });
+  for (const client of clientsList) {
+    client.postMessage(message);
+  }
 }
 
-// Install / Activate
+/* Install: precache app shell */
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(PRECACHE_URLS))
-      .then(() => self.skipWaiting())
+    (async () => {
+      self.skipWaiting(); // activate as soon as installed
+      const cache = await caches.open(APP_SHELL_CACHE);
+      try {
+        await cache.addAll(PRECACHE_URLS);
+      } catch (err) {
+        // best-effort: continue even if some resources failed to cache
+        console.warn('lexi-sw: precache addAll failed', err);
+      }
+    })()
   );
 });
+
+/* Activate: clean up old caches */
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
-    ).then(() => self.clients.claim())
+    (async () => {
+      // claim clients so SW starts controlling pages immediately
+      await self.clients.claim();
+      const keys = await caches.keys();
+      await Promise.all(
+        keys.map((k) => {
+          if (![APP_SHELL_CACHE, RUNTIME_CACHE].includes(k)) return caches.delete(k);
+          return Promise.resolve();
+        })
+      );
+      // Inform pages that SW is ready (optional)
+      broadcastToClients({ type: 'sw-ready', version: CACHE_VERSION });
+    })()
   );
 });
 
-// Fetch strategy
+/* Fetch strategy:
+   - For precached (shell) items: cache-first
+   - For runtime / API calls: stale-while-revalidate
+   - Fallback to offline response for navigation requests
+*/
 self.addEventListener('fetch', (event) => {
   const req = event.request;
+  const url = new URL(req.url);
+
+  // Only handle GET requests
   if (req.method !== 'GET') return;
 
-  const accept = req.headers.get('Accept') || '';
-
-  if (accept.includes('text/html')) {
+  // App shell / precached exact-match: respond from cache first
+  if (PRECACHE_URLS.includes(url.pathname) || PRECACHE_URLS.includes(req.url)) {
     event.respondWith(
-      fetch(req).then(r => {
-        caches.open(CACHE_NAME).then(c => c.put(req, r.clone()));
-        return r;
-      }).catch(() => caches.match('/index.html'))
+      caches.open(APP_SHELL_CACHE).then(async (cache) => {
+        const cached = await cache.match(req);
+        if (cached) return cached;
+        // fallback: try network and then cache it
+        try {
+          const net = await fetch(req);
+          if (net && net.ok) cache.put(req, net.clone());
+          return net;
+        } catch (err) {
+          return cached || new Response('Offline', { status: 503, statusText: 'Offline' });
+        }
+      })
     );
     return;
   }
 
-  event.respondWith(
-    caches.match(req).then(cached => {
-      const net = fetch(req).then(r => {
-        if (r && r.status === 200) {
-          caches.open(CACHE_NAME).then(c => c.put(req, r.clone()));
-        }
-        return r;
-      }).catch(() => null);
-      return cached || net;
-    })
-  );
-});
+  // Runtime caching for third-party APIs and other resources (stale-while-revalidate)
+  // Example: open-meteo, date.nager.at — the app fetches these endpoints.
+  const isApiCall =
+    url.hostname.includes('open-meteo.com') ||
+    url.hostname.includes('date.nager.at') ||
+    url.pathname.startsWith('/api/') ||
+    url.pathname.endsWith('.json');
 
-// Messaging
-self.addEventListener('message', (ev) => {
-  const d = ev.data;
-  if (!d) return;
-
-  if (d === 'skipWaiting' || d?.type === 'skipWaiting') {
-    self.skipWaiting();
+  if (isApiCall || url.origin !== self.origin) {
+    event.respondWith(
+      caches.open(RUNTIME_CACHE).then(async (cache) => {
+        const cached = await cache.match(req);
+        const networkFetch = fetch(req)
+          .then((res) => {
+            // Only cache successful responses
+            if (res && res.ok) cache.put(req, res.clone());
+            return res;
+          })
+          .catch(() => null);
+        // Return cached response immediately if available, otherwise wait for network
+        return cached ? Promise.resolve(cached) : networkFetch.then((r) => r || new Response(null, { status: 504 }));
+      })
+    );
     return;
   }
-  if (d.type === 'save-state' && d.state) {
-    const item = { id: 'state-' + Date.now(), type: 'state', payload: d.state, ts: Date.now() };
-    idbAdd(item).then(() => notifyClients({ type: 'sw-saved', id: item.id }));
-  }
-  if (d.type === 'queue-action' && d.action) {
-    const item = { id: 'act-' + Date.now(), type: 'action', payload: d.action, ts: Date.now() };
-    idbAdd(item).then(() => notifyClients({ type: 'sw-queued', id: item.id }));
-  }
-  if (d.type === 'registerSync' && d.tag) {
-    self.registration.sync.register(d.tag)
-      .then(() => notifyClients({ type: 'sync-registered', tag: d.tag }))
-      .catch(() => notifyClients({ type: 'sync-failed', tag: d.tag }));
-  }
-  if (d.type === 'notify' && d.title) {
-    showNotification(d.title, d.options || {});
-  }
-});
 
-// Background Sync
-self.addEventListener('sync', (event) => {
-  if (!event.tag) return;
-  event.waitUntil(flushQueue());
-});
-async function flushQueue() {
-  const items = await idbGetAll();
-  for (const it of items) {
-    try {
-      if (it.payload && it.payload.url) {
-        await fetch(it.payload.url, {
-          method: it.payload.method || 'POST',
-          headers: it.payload.headers || { 'Content-Type': 'application/json' },
-          body: it.payload.body ? JSON.stringify(it.payload.body) : null
-        });
-      }
-      await idbDelete(it.id);
-      notifyClients({ type: 'sync-item-success', id: it.id });
-    } catch (e) {
-      notifyClients({ type: 'sync-item-failed', id: it.id });
-    }
-  }
-}
+  // Default: try network first, fallback to cache (useful for app JS, navs)
+  event.respondWith(
+    (async () => {
+      try {
+        const networkResponse = await fetch(req);
+        // Optionally cache navigations or other resources on successful fetch
+        if (req.mode === 'navigate' && networkResponse && networkResponse.ok) {
+          const cache = await caches.open(APP_SHELL_CACHE);
+          cache.put(req, networkResponse.clone());
+        }
+        return networkResponse;
+      } catch (err) {
+        // network failed — try cache
+        const cached = await caches.match(req);
+        if (cached) return cached;
 
-// Notifications
-function showNotification(title, options = {}) {
-  const opt = Object.assign({
-    body: options.body || '',
-    icon: options.icon || '/assets/kitten-icon-192.png',
-    badge: options.badge || '/assets/kitten-badge.png',
-    sound: options.sound || '/assets/kitten-chime.mp3',
-    tag: options.tag || 'lexi-notify',
-    data: options.data || {}
-  }, options);
-  return self.registration.showNotification(title, opt);
-}
-self.addEventListener('push', (ev) => {
-  let data = {};
-  try { data = ev.data.json(); } catch (e) { data = { body: ev.data.text() }; }
-  const title = data.title || 'Lexi Reminder';
-  ev.waitUntil(showNotification(title, data));
-});
-self.addEventListener('notificationclick', (ev) => {
-  ev.notification.close();
-  const url = ev.notification.data?.url || '/';
-  ev.waitUntil(
-    self.clients.matchAll({ type: 'window' }).then(clientsArr => {
-      for (const c of clientsArr) {
-        if (c.url === url && 'focus' in c) return c.focus();
+        // If navigation and no cache, return a minimal offline page
+        if (req.mode === 'navigate') {
+          return new Response(
+            `<!doctype html><html><head><meta charset="utf-8"><title>Offline</title></head><body><h1>Offline</h1><p>Lexi is offline.</p></body></html>`,
+            { headers: { 'Content-Type': 'text/html' } }
+          );
+        }
+        return new Response(null, { status: 504, statusText: 'Offline' });
       }
-      return self.clients.openWindow(url);
-    })
+    })()
   );
 });
 
-// Helpers
-async function notifyClients(msg) {
-  const clientsArr = await self.clients.matchAll({ includeUncontrolled: true });
-  for (const c of clientsArr) c.postMessage(msg);
-}
+/* Message from client pages:
+   - {type: 'skip-waiting'} -> activate new SW immediately
+   - {type: 'play-chime'} -> broadcast 'play-chime' to all clients (page can play audio)
+   - {type: 'clear-cache'} -> clear caches (for debugging)
+*/
+self.addEventListener('message', (event) => {
+  const payload = event.data;
+  if (!payload) return;
+
+  if (payload.type === 'skip-waiting') {
+    self.skipWaiting();
+  }
+
+  if (payload.type === 'play-chime') {
+    // Post a message to clients to instruct playing the chime (media playback must be handled in page)
+    broadcastToClients({ type: 'play-chime' });
+  }
+
+  if (payload.type === 'clear-cache') {
+    (async () => {
+      const keys = await caches.keys();
+      await Promise.all(keys.map((k) => caches.delete(k)));
+      broadcastToClients({ type: 'cache-cleared' });
+    })();
+  }
+});
+
+/* Background Sync handling:
+   - When a sync with tag 'lexi-sync' fires, notify clients to perform whatever background sync logic they have.
+   - Also provide general sync message to clients for custom tags.
+*/
+self.addEventListener('sync', (event) => {
+  // Example: event.tag === 'lexi-sync'
+  event.waitUntil(
+    (async () => {
+      // Notify clients so the app can run its own sync routines (e.g., push local transactions to server)
+      await broadcastToClients({ type: 'background-sync', tag: event.tag });
+      // Optionally, you could perform network requests here from the SW if needed
+    })()
+  );
+});
+
+/* Push event (optional): show notification if push payload arrives */
+self.addEventListener('push', (event) => {
+  let title = 'Lexi 🐾';
+  let body = 'You have a notification from Lexi';
+  try {
+    if (event.data) {
+      const data = event.data.json();
+      title = data.title || title;
+      body = data.body || body;
+    }
+  } catch (err) {
+    // not JSON
+    if (event.data) body = event.data.text();
+  }
+  const options = {
+    body,
+    icon: '/icons/icon-192.png',
+    badge: '/icons/badge-72.png',
+    data: { date: Date.now() },
+  };
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+/* Notification click */
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  event.waitUntil(
+    (async () => {
+      const all = await clients.matchAll({ includeUncontrolled: true });
+      if (all.length) {
+        all[0].focus();
+        all[0].postMessage({ type: 'notification-click', data: event.notification.data });
+      } else {
+        clients.openWindow('/');
+      }
+    })()
+  );
+});
+
+/* Optional: periodic sync / push subscription management could be added later */
+
+/* End of lexi-sw.js */
