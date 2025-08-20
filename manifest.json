@@ -2,10 +2,12 @@
   "name": "Lexi’s Budget Tracker 🐾",
   "short_name": "Lexi Tracker",
   "start_url": "/index.html",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#fce7f3",
-  "theme_color": "#f9a8d4",
   "orientation": "portrait",
+  "background_color": "#fff0f6",
+  "theme_color": "#f9a8d4",
+  "description": "A pastel-pink kitten-themed budget tracker for income, expenses, savings, and reminders.",
   "icons": [
     {
       "src": "/assets/icon-192.png",
