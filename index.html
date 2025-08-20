@@ -2,427 +2,434 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover"
+  />
   <title>Lexi’s Budget Tracker 🐾</title>
-  <meta name="theme-color" content="#f7c7d9" />
-  <link rel="manifest" href="manifest.json" />
-  <!-- TailwindCSS CDN -->
+
+  <!-- Tailwind + Chart.js -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Chart.js CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <!-- Icons -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+
+  <!-- Modern sans font -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+
   <style>
     :root{
-      --pink:#f7c7d9; --pink-100:#fdeaf1; --pink-200:#fbd7e4; --pink-300:#f7c7d9; --pink-400:#f4a9c6; --pink-500:#ef8fb6;
-      --accent:#97d6ff; --mint:#b8f0e3; --lav:#d9c2ff; --peach:#ffd7c2; --text:#3b3b3b;
+      --pink-50:#fff5f8;
+      --pink-100:#ffe9f1;
+      --pink-200:#ffd3e4;
+      --pink-300:#ffb7d2;
+      --pink-400:#ff9ac1;
+      --pink-500:#ff7ab0;
+      --ink:#2c2c35;
+      --muted:#6b6b7a;
     }
-    html,body{font-family: "Nunito", system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"; color:var(--text);}
-    .glass{backdrop-filter: blur(8px); background:rgba(255,255,255,.65);}    
-    .card{background: var(--pink-100); border:1px solid #f6dbe6; border-radius: 1rem; box-shadow: 0 10px 24px rgba(0,0,0,.06);} 
-    .tab-btn[aria-selected="true"]{background: white; box-shadow: 0 6px 14px rgba(0,0,0,.07)}
-    /* Floating kitten paw particles */
-    .paw {position: fixed; pointer-events:none; font-size:20px; opacity:.9; animation: floatUp .9s ease-out forwards;} 
-    @keyframes floatUp { from{transform: translateY(0) scale(.9); opacity:.9} to{transform: translateY(-40px) scale(1.4); opacity:0} }
-    /* Pulse for due indicators */
-    .pulse { position: relative; }
-    .pulse::after { content:""; position:absolute; inset:-4px; border-radius:999px; border:2px solid var(--pink-400); animation:pulse 1.5s infinite; }
-    @keyframes pulse { 0%{opacity:.7; transform:scale(.95)} 70%{opacity:0; transform:scale(1.2)} 100%{opacity:0} }
-    /* Simple modal base */
-    .modal{ position: fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,.35); z-index:50;}
-    .modal.active{ display:flex; }
-    /* Calendar grid */
-    .cal-grid{ display:grid; grid-template-columns: repeat(7, minmax(0,1fr)); gap:.5rem; }
-    .chip{ display:inline-flex; align-items:center; gap:.35rem; border-radius:999px; padding:.25rem .6rem; background:white; border:1px dashed #f3b5c7; }
-    .btn{ @apply px-3 py-2 rounded-2xl font-semibold; }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      font-family: Poppins, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
+      color:var(--ink);
+      background:linear-gradient(180deg, var(--pink-50), #fff);
+    }
+    /* Cards */
+    .card{background:#fff;border:1px solid var(--pink-200); border-radius:1rem; padding:1rem; box-shadow:0 6px 24px rgba(255,122,176,.12)}
+    .chip{background:var(--pink-100); border:1px solid var(--pink-300); border-radius:9999px; padding:.25rem .6rem;}
+    /* Tabs */
+    .tab-active{background:var(--pink-300) !important; color:#432;}
+    /* Simple modal */
+    .modal{position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,.35); z-index:50}
+    .modal.active{display:flex}
+    .modal-card{background:#fff; border:1px solid var(--pink-300); border-radius:1rem; width:min(720px, 92vw); padding:1rem}
+    /* 3D kitten float */
+    .kitten{position:absolute; width:70px; filter: drop-shadow(0 6px 10px rgba(255,122,176,.35)); animation:float 8s ease-in-out infinite}
+    .kitten.k2{animation-duration:10s; top:12%; left:5%}
+    .kitten.k1{top:8%; right:6%}
+    @keyframes float{
+      0%,100% { transform: translate3d(0,0,0) rotate(-2deg); }
+      50% { transform: translate3d(0,-16px,0) rotate(2deg); }
+    }
+    /* Paw particles */
+    .paw{
+      position:fixed; pointer-events:none; z-index:60; opacity:.9; transform:translate(-50%,-50%);
+      animation: pop 900ms ease forwards;
+    }
+    @keyframes pop{
+      0%{transform:translate(-50%,-50%) scale(.6); opacity:0}
+      15%{opacity:1}
+      100%{transform:translate(-50%,-120%) scale(1.25) rotate(-10deg); opacity:0}
+    }
+    /* Pulse marker (due soon) */
+    .pulse{ position:relative;}
+    .pulse::after{
+      content:""; position:absolute; inset:-3px; border-radius:14px; border:2px solid var(--pink-400);
+      animation: pulseA 1.4s ease infinite;
+    }
+    @keyframes pulseA{0%{opacity:.3; transform:scale(.98)} 50%{opacity:1; transform:scale(1)} 100%{opacity:.3; transform:scale(.98)}}
+
+    /* Buttons */
+    .btn{border:1px solid var(--pink-300); background:#fff; padding:.45rem .85rem; border-radius:9999px}
+    .btn-primary{background:var(--pink-300)}
+    .grid-auto-200{display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:1rem}
+    .grid-auto-260{display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:1rem}
   </style>
 </head>
-<body class="min-h-screen bg-[var(--pink-200)]">
-  <!-- Audio (preloaded) -->
-  <audio id="kitten-chime" src="/assets/kitten-chime.mp3" preload="auto"></audio>
 
-  <!-- App Shell -->
-  <header class="sticky top-0 z-40 glass border-b border-pink-200">
-    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center gap-3">
-      <div class="text-2xl md:text-3xl font-extrabold">Lexi’s Budget Tracker 🐾</div>
-      <div id="daily-quote" class="ml-auto text-sm md:text-base italic opacity-80"></div>
+<body class="min-h-screen">
+  <!-- Floating kittens -->
+  <img class="kitten k1" alt="kitten" src="data:image/svg+xml;utf8,<?xml version='1.0' ?><svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'><circle cx='64' cy='64' r='58' fill='%23ffe9f1'/><path d='M32 50c-6 24 12 42 32 42s38-18 32-42-16-28-32-28-26 4-32 28z' fill='%23ffb7d2' stroke='%23ff7ab0' stroke-width='3'/><circle cx='52' cy='65' r='5' fill='%232c2c35'/><circle cx='76' cy='65' r='5' fill='%232c2c35'/><path d='M48 83c10 6 22 6 32 0' stroke='%232c2c35' stroke-width='3' fill='none'/></svg>"/>
+  <img class="kitten k2" alt="kitten" src="data:image/svg+xml;utf8,<?xml version='1.0' ?><svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'><rect x='8' y='8' width='112' height='112' rx='24' fill='%23ffd3e4'/><path d='M34 76c6 18 24 24 42 20s28-22 22-40-20-22-36-18-34 20-28 38z' fill='%23ff9ac1'/><circle cx='58' cy='73' r='5' fill='%232c2c35'/><circle cx='80' cy='73' r='5' fill='%232c2c35'/><path d='M56 88c8 5 16 5 24 0' stroke='%232c2c35' stroke-width='3' fill='none'/></svg>"/>
+
+  <!-- Audio (precache path) -->
+  <audio id="chime" src="/assets/kitten-chime.mp3" preload="auto"></audio>
+
+  <!-- Top header: Clock / Weather / Holiday / Quote -->
+  <header class="sticky top-0 z-40 backdrop-blur bg-[rgba(255,245,248,.85)] border-b border-[var(--pink-200)]">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+      <div class="flex items-center gap-3">
+        <div class="text-sm">
+          <div id="clock" class="font-semibold">--:-- -- • Mon, Jan 1</div>
+          <div id="holiday" class="text-[12px] text-[var(--muted)]">Holiday: --</div>
+        </div>
+        <div id="weather" class="text-sm chip">Davao Weather: --</div>
+      </div>
+      <div id="quote" class="text-sm md:text-base italic text-[var(--muted)]"></div>
     </div>
   </header>
 
-  <!-- Top status ribbon: clock / weather / holiday -->
-  <div class="max-w-7xl mx-auto px-4 py-3 grid grid-cols-1 md:grid-cols-3 gap-3">
-    <div class="card p-3 flex items-center gap-3">
-      <div class="text-4xl">⏰</div>
-      <div>
-        <div id="manila-clock" class="font-bold text-lg">--:-- --</div>
-        <div id="manila-date" class="text-sm opacity-80">Loading date…</div>
-      </div>
-    </div>
-    <div class="card p-3 flex items-center gap-3">
-      <div class="text-4xl">🌤️</div>
-      <div>
-        <div id="davao-weather" class="font-bold text-lg">Weather: …</div>
-        <div id="davao-temp" class="text-sm opacity-80">Temp: …</div>
-      </div>
-    </div>
-    <div class="card p-3 flex items-center gap-3">
-      <div class="text-4xl">🇵🇭</div>
-      <div>
-        <div id="ph-holiday" class="font-bold text-lg">PH Holiday: …</div>
-        <div class="text-sm opacity-80">Auto-filled from open API</div>
-      </div>
+  <!-- App Title + Tabs -->
+  <div class="max-w-6xl mx-auto px-4 mt-4">
+    <div class="flex flex-wrap gap-2 items-center justify-between">
+      <h1 class="text-2xl md:text-3xl font-bold">Lexi’s Budget Tracker 🐾</h1>
+      <nav class="flex flex-wrap gap-2">
+        <button class="btn tab-btn tab-active" data-panel="panel-dashboard">A) Dashboard</button>
+        <button class="btn tab-btn" data-panel="panel-quick">B) Quick Setup</button>
+        <button class="btn tab-btn" data-panel="panel-transactions">C) Income & Expenses</button>
+        <button class="btn tab-btn" data-panel="panel-budgets">D) Monthly Budget</button>
+        <button class="btn tab-btn" data-panel="panel-savings">E) Savings & Goals</button>
+        <button class="btn tab-btn" data-panel="panel-salary">F) Live Salary Tracker</button>
+        <button class="btn tab-btn" data-panel="panel-calendar">G) Calendar & Reminders</button>
+        <button class="btn tab-btn" data-panel="panel-reports">Reports</button>
+        <button class="btn tab-btn" data-panel="panel-settings">Settings</button>
+      </nav>
     </div>
   </div>
 
-  <!-- Tabs Nav -->
-  <nav class="max-w-7xl mx-auto px-4 pt-2 pb-4">
-    <div class="flex flex-wrap gap-2">
-      <button class="tab-btn px-4 py-2 rounded-2xl bg-[var(--pink-300)]" data-panel="panel-dashboard" aria-selected="true">A) Dashboard</button>
-      <button class="tab-btn px-4 py-2 rounded-2xl bg-[var(--pink-300)]" data-panel="panel-quick-setup">B) Quick Setup</button>
-      <button class="tab-btn px-4 py-2 rounded-2xl bg-[var(--pink-300)]" data-panel="panel-transactions">C) Income & Expenses Log</button>
-      <button class="tab-btn px-4 py-2 rounded-2xl bg-[var(--pink-300)]" data-panel="panel-budgets">D) Monthly Budget</button>
-      <button class="tab-btn px-4 py-2 rounded-2xl bg-[var(--pink-300)]" data-panel="panel-savings">E) Savings & Goals</button>
-      <button class="tab-btn px-4 py-2 rounded-2xl bg-[var(--pink-300)]" data-panel="panel-salary">F) Live Salary Tracker</button>
-      <button class="tab-btn px-4 py-2 rounded-2xl bg-[var(--pink-300)]" data-panel="panel-calendar">G) Calendar & Reminders</button>
-      <button class="tab-btn px-4 py-2 rounded-2xl bg-[var(--pink-300)]" data-panel="panel-reports">Reports</button>
-      <button class="tab-btn px-4 py-2 rounded-2xl bg-[var(--pink-300)]" data-panel="panel-settings">Settings</button>
-      <button id="history-open-btn" class="ml-auto px-4 py-2 rounded-2xl bg-white border">History</button>
-    </div>
-  </nav>
-
-  <main class="max-w-7xl mx-auto px-4 pb-20">
+  <main class="max-w-6xl mx-auto px-4 py-6 space-y-10">
     <!-- A) Dashboard -->
-    <section id="panel-dashboard" class="space-y-4">
+    <section id="panel-dashboard">
       <!-- Profile Info (editable) -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <div class="card p-4 md:col-span-3">
-          <h2 class="text-xl font-bold mb-3">Profile Info</h2>
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <div>
-              <label class="text-xs uppercase">Name</label>
-              <input id="profile-name" class="w-full mt-1 p-2 rounded-xl border" value="Lexi Natividad Tamot" />
-            </div>
-            <div>
-              <label class="text-xs uppercase">Phone</label>
-              <input id="profile-phone" class="w-full mt-1 p-2 rounded-xl border" value="09619128418" />
-            </div>
-            <div>
-              <label class="text-xs uppercase">Email</label>
-              <input id="profile-email" class="w-full mt-1 p-2 rounded-xl border" value="tamotnicko1999@gmail.com" />
+      <div class="grid md:grid-cols-3 gap-4">
+        <div class="card">
+          <div class="font-semibold mb-2">Profile Info</div>
+          <div class="grid gap-2">
+            <label class="text-sm">Name <input id="profile-name" class="w-full border rounded-lg px-3 py-2" value="Lexi Natividad Tamot"/></label>
+            <label class="text-sm">Phone <input id="profile-phone" class="w-full border rounded-lg px-3 py-2" value="09619128418"/></label>
+            <label class="text-sm">Email <input id="profile-email" class="w-full border rounded-lg px-3 py-2" value="tamotnicko1999@gmail.com"/></label>
+            <div class="flex gap-2">
+              <button id="profile-save-btn" class="btn btn-primary">Save</button>
+              <button id="profile-cancel-btn" class="btn">Cancel</button>
             </div>
           </div>
-          <div class="mt-3 flex gap-2">
-            <button id="profile-save-btn" class="px-3 py-2 rounded-2xl bg-[var(--pink-400)] text-white font-bold">Save</button>
-            <button id="profile-cancel-btn" class="px-3 py-2 rounded-2xl border">Cancel</button>
-          </div>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="md:col-span-2 grid-auto-260">
+          <div class="card"><div class="text-sm">Running Pay Period Income</div><div id="pp-income" class="text-2xl font-bold">₱0</div></div>
+          <div class="card"><div class="text-sm">Running Monthly Income</div><div id="mo-income" class="text-2xl font-bold">₱0</div></div>
+          <div class="card"><div class="text-sm">Total Expenses</div><div id="total-expenses" class="text-2xl font-bold">₱0</div></div>
+          <div class="card"><div class="text-sm">Balance</div><div id="balance" class="text-2xl font-bold">₱0</div></div>
+          <div class="card"><div class="text-sm">Savings Rate</div><div id="savings-rate" class="text-2xl font-bold">0%</div></div>
+          <div class="card"><div class="text-sm">Total Savings</div><div id="total-savings" class="text-2xl font-bold">₱0</div></div>
         </div>
       </div>
 
-      <!-- Summary Cards -->
-      <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-3">
-        <div class="card p-4"><div class="text-sm opacity-70">Running Pay Period Income</div><div id="running-pay-income" class="text-2xl font-extrabold">₱0</div></div>
-        <div class="card p-4"><div class="text-sm opacity-70">Running Monthly Income</div><div id="running-month-income" class="text-2xl font-extrabold">₱0</div></div>
-        <div class="card p-4"><div class="text-sm opacity-70">Total Expenses</div><div id="total-expenses" class="text-2xl font-extrabold">₱0</div></div>
-        <div class="card p-4"><div class="text-sm opacity-70">Balance</div><div id="balance" class="text-2xl font-extrabold">₱0</div></div>
-        <div class="card p-4"><div class="text-sm opacity-70">Savings Rate</div><div id="savings-rate" class="text-2xl font-extrabold">0%</div></div>
-        <div class="card p-4"><div class="text-sm opacity-70">Total Savings</div><div id="total-savings" class="text-2xl font-extrabold">₱0</div></div>
-      </div>
-
-      <!-- Pay Period Summary Card (Previous vs Current) -->
-      <div class="card p-4">
-        <h3 class="text-lg font-extrabold mb-3">Pay Period Summary</h3>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div class="p-3 rounded-xl bg-white border">
-            <h4 class="font-bold mb-2">Previous Pay Period</h4>
-            <div class="text-sm" id="prev-pay-dates">Dates: —</div>
-            <div class="text-sm" id="prev-pay-expected">Expected: ₱0</div>
-            <div class="text-sm" id="prev-pay-actual">Actual: ₱0</div>
-            <div class="text-sm font-semibold" id="prev-pay-diff">Difference: ₱0</div>
-          </div>
-          <div class="p-3 rounded-xl bg-white border">
-            <h4 class="font-bold mb-2">Current Pay Period</h4>
-            <div class="text-sm" id="curr-pay-dates">Dates: —</div>
-            <div class="text-sm" id="curr-pay-expected">Expected: ₱0</div>
-            <div class="text-sm" id="curr-pay-actual">Ongoing Actual: ₱0</div>
-          </div>
+      <!-- Pay Period Summary -->
+      <div class="grid md:grid-cols-2 gap-4">
+        <div class="card">
+          <div class="font-semibold mb-2">Pay Period Summary — Previous</div>
+          <div id="pp-prev" class="text-sm">Dates: -- • Expected: ₱0 • Actual: ₱0 • Diff: ₱0</div>
+        </div>
+        <div class="card">
+          <div class="font-semibold mb-2">Pay Period Summary — Current</div>
+          <div id="pp-curr" class="text-sm">Dates: -- • Expected: ₱0 • Ongoing Actual: ₱0</div>
         </div>
       </div>
 
-      <!-- Panels: Next Bills / Upcoming Paychecks / Recent Transactions -->
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-3">
-        <div class="card p-4">
-          <div class="flex items-center justify-between mb-2"><h3 class="font-bold">Next Bills</h3><a class="text-sm underline" href="#" data-panel-jump="panel-quick-setup">Manage</a></div>
+      <!-- Next bills / paychecks / recent transactions -->
+      <div class="grid md:grid-cols-3 gap-4">
+        <div class="card">
+          <div class="font-semibold mb-2">Next Bills</div>
           <ul id="next-bills" class="space-y-2 text-sm"></ul>
         </div>
-        <div class="card p-4">
-          <div class="flex items-center justify-between mb-2"><h3 class="font-bold">Upcoming Paychecks</h3><a class="text-sm underline" href="#" data-panel-jump="panel-salary">Salary</a></div>
+        <div class="card">
+          <div class="font-semibold mb-2">Upcoming Paychecks</div>
           <ul id="upcoming-paychecks" class="space-y-2 text-sm"></ul>
         </div>
-        <div class="card p-4">
-          <div class="flex items-center justify-between mb-2"><h3 class="font-bold">Recent Transactions</h3><a class="text-sm underline" href="#" data-panel-jump="panel-transactions">View all</a></div>
-          <ul id="recent-transactions" class="space-y-2 text-sm"></ul>
+        <div class="card">
+          <div class="flex items-center justify-between">
+            <div class="font-semibold">Recent Transactions</div>
+            <button id="history-open-btn" class="btn">History</button>
+          </div>
+          <ul id="recent-tx" class="space-y-2 text-sm mt-2"></ul>
         </div>
       </div>
 
-      <!-- Charts + Toggle -->
-      <div class="flex items-center gap-2">
-        <span class="text-sm">Aggregate:</span>
-        <div class="inline-flex bg-white rounded-2xl border overflow-hidden">
-          <button class="px-3 py-1 text-sm" id="agg-biweekly">Bi-weekly</button>
-          <button class="px-3 py-1 text-sm bg-[var(--pink-300)]" id="agg-monthly">Monthly</button>
-          <button class="px-3 py-1 text-sm" id="agg-yearly">Yearly</button>
+      <!-- Charts + Aggregation Toggle -->
+      <div class="card">
+        <div class="flex flex-wrap items-center gap-2 justify-between">
+          <div class="font-semibold">Trends</div>
+          <div class="flex gap-2">
+            <button id="agg-biweekly" class="btn btn-primary">Bi-weekly</button>
+            <button id="agg-monthly" class="btn">Monthly</button>
+            <button id="agg-yearly" class="btn">Yearly</button>
+          </div>
         </div>
-      </div>
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-3">
-        <canvas id="chart-income"></canvas>
-        <canvas id="chart-expenses"></canvas>
-        <canvas id="chart-savings"></canvas>
+        <div class="grid md:grid-cols-3 gap-4 mt-3">
+          <canvas id="chart-income" height="140"></canvas>
+          <canvas id="chart-expenses" height="140"></canvas>
+          <canvas id="chart-savings" height="140"></canvas>
+        </div>
       </div>
     </section>
 
-    <!-- B) Quick Setup (Jobs & Bills) -->
-    <section id="panel-quick-setup" class="space-y-4 hidden">
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div class="card p-4">
-          <h3 class="font-bold text-lg mb-2">Jobs</h3>
-          <form id="job-form" class="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <input required id="job-company" placeholder="Company" class="p-2 rounded-xl border" />
-            <input required id="job-salary" type="number" min="0" placeholder="Monthly Salary" class="p-2 rounded-xl border" />
-            <select id="job-cycle" class="p-2 rounded-xl border">
-              <option value="weekly">weekly</option>
-              <option value="bi-weekly" selected>bi-weekly</option>
-              <option value="monthly">monthly</option>
+    <!-- B) Quick Setup -->
+    <section id="panel-quick" class="hidden">
+      <div class="grid md:grid-cols-2 gap-6">
+        <div class="card">
+          <div class="font-semibold mb-2">Jobs</div>
+          <form id="job-form" class="grid md:grid-cols-2 gap-2">
+            <input id="job-company" class="border rounded-lg px-3 py-2" placeholder="Company" required/>
+            <input id="job-salary" type="number" class="border rounded-lg px-3 py-2" placeholder="Monthly Salary (₱)" min="0" required/>
+            <select id="job-cycle" class="border rounded-lg px-3 py-2">
+              <option>weekly</option><option selected>bi-weekly</option><option>monthly</option>
             </select>
-            <input id="job-shift" placeholder="Shift schedule" class="p-2 rounded-xl border" />
-            <div class="md:col-span-2 flex gap-2">
-              <button id="job-save-btn" type="submit" class="px-3 py-2 rounded-2xl bg-[var(--pink-400)] text-white font-bold">Save</button>
-              <button id="job-cancel-btn" type="button" class="px-3 py-2 rounded-2xl border">Cancel</button>
+            <input id="job-shift" class="border rounded-lg px-3 py-2" placeholder="Shift schedule (e.g., M-F 9-6)"/>
+            <div class="col-span-2 flex gap-2">
+              <button id="job-save-btn" class="btn btn-primary">Save</button>
+              <button id="job-cancel-btn" type="button" class="btn">Cancel</button>
             </div>
           </form>
-          <ul id="job-list" class="mt-3 space-y-2 text-sm"></ul>
+          <ul id="job-list" class="mt-3 space-y-2"></ul>
         </div>
-        <div class="card p-4">
-          <h3 class="font-bold text-lg mb-2">Bills</h3>
-          <form id="bill-form" class="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <input required id="bill-name" placeholder="Bill name" class="p-2 rounded-xl border" />
-            <input required id="bill-amount" type="number" min="0" placeholder="Amount" class="p-2 rounded-xl border" />
-            <input required id="bill-due" type="number" min="1" max="31" placeholder="Due day" class="p-2 rounded-xl border" />
-            <label class="inline-flex items-center gap-2 text-sm"><input id="bill-auto" type="checkbox"/> Auto-add</label>
-            <div class="md:col-span-2 flex gap-2">
-              <button id="bill-save-btn" type="submit" class="px-3 py-2 rounded-2xl bg-[var(--pink-400)] text-white font-bold">Save</button>
-              <button id="bill-cancel-btn" type="button" class="px-3 py-2 rounded-2xl border">Cancel</button>
+
+        <div class="card">
+          <div class="font-semibold mb-2">Bills (Recurring)</div>
+          <form id="bill-form" class="grid md:grid-cols-2 gap-2">
+            <input id="bill-name" class="border rounded-lg px-3 py-2" placeholder="Bill name" required/>
+            <input id="bill-amount" type="number" class="border rounded-lg px-3 py-2" placeholder="Amount (₱)" min="0" required/>
+            <input id="bill-due" type="number" class="border rounded-lg px-3 py-2" placeholder="Due day (1-31)" min="1" max="31" required/>
+            <label class="flex items-center gap-2 text-sm"><input id="bill-auto" type="checkbox"/> Auto-add</label>
+            <div class="col-span-2 flex gap-2">
+              <button id="bill-save-btn" class="btn btn-primary">Save</button>
+              <button id="bill-cancel-btn" type="button" class="btn">Cancel</button>
             </div>
           </form>
-          <ul id="bill-list" class="mt-3 space-y-2 text-sm"></ul>
+          <ul id="bill-list" class="mt-3 space-y-2"></ul>
         </div>
       </div>
-      <div class="card p-4">
-        <h4 class="font-bold mb-2">Quick Summary</h4>
-        <div id="quick-summary" class="text-sm grid grid-cols-2 md:grid-cols-4 gap-2"></div>
+
+      <div class="card mt-6">
+        <div class="font-semibold mb-2">Quick Summary</div>
+        <div id="quick-summary" class="grid-auto-200"></div>
       </div>
     </section>
 
-    <!-- C) Income & Expenses Log -->
-    <section id="panel-transactions" class="space-y-3 hidden">
-      <div class="flex items-center gap-2">
-        <input id="tx-search" placeholder="Search description or tags…" class="p-2 rounded-xl border w-full" />
-        <button id="tx-add-btn" class="px-3 py-2 rounded-2xl bg-[var(--pink-400)] text-white font-bold">Add</button>
-      </div>
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-2">
-        <input id="tx-start" type="date" class="p-2 rounded-xl border" />
-        <input id="tx-end" type="date" class="p-2 rounded-xl border" />
-        <select id="tx-category-filter" class="p-2 rounded-xl border">
-          <option value="">All categories</option>
-          <option>income</option>
-          <option>expense</option>
-          <option>savings</option>
-        </select>
-        <input id="tx-tags-filter" placeholder="Tags (comma)" class="p-2 rounded-xl border" />
-      </div>
-      <div class="overflow-auto">
-        <table class="min-w-full text-sm">
-          <thead><tr class="text-left">
-            <th class="p-2">Date</th><th class="p-2">Description</th><th class="p-2">Category</th>
-            <th class="p-2">Amount</th><th class="p-2">Balance After</th><th class="p-2">Linked</th><th class="p-2">Notes</th><th class="p-2">Tags</th><th class="p-2">Status</th><th class="p-2"></th>
-          </tr></thead>
-          <tbody id="tx-tbody"></tbody>
-        </table>
+    <!-- C) Transactions -->
+    <section id="panel-transactions" class="hidden">
+      <div class="card">
+        <div class="flex flex-wrap items-end gap-2">
+          <div class="grid">
+            <label class="text-xs">Search</label>
+            <input id="tx-search" class="border rounded-lg px-3 py-2" placeholder="Description / notes / tags"/>
+          </div>
+          <div class="grid">
+            <label class="text-xs">Start</label>
+            <input id="tx-start" type="date" class="border rounded-lg px-3 py-2"/>
+          </div>
+          <div class="grid">
+            <label class="text-xs">End</label>
+            <input id="tx-end" type="date" class="border rounded-lg px-3 py-2"/>
+          </div>
+          <div class="grid">
+            <label class="text-xs">Category</label>
+            <select id="tx-category-filter" class="border rounded-lg px-3 py-2">
+              <option value="">All</option>
+              <option>income</option><option>expense</option><option>savings</option>
+            </select>
+          </div>
+          <div class="grid">
+            <label class="text-xs">Tags</label>
+            <input id="tx-tags-filter" class="border rounded-lg px-3 py-2" placeholder="e.g. food, rent"/>
+          </div>
+          <div class="flex-1"></div>
+          <button id="tx-add-btn" class="btn btn-primary">Add Transaction</button>
+        </div>
+        <div class="overflow-x-auto mt-3">
+          <table class="w-full text-sm">
+            <thead><tr class="text-left">
+              <th class="p-2">Date</th><th class="p-2">Description</th><th class="p-2">Category</th>
+              <th class="p-2">Amount</th><th class="p-2">Balance After</th><th class="p-2">Linked Job/Bill</th>
+              <th class="p-2">Notes</th><th class="p-2">Tags</th><th class="p-2">Status</th><th class="p-2 text-right">Actions</th>
+            </tr></thead>
+            <tbody id="tx-tbody"></tbody>
+          </table>
+        </div>
+
+        <div class="mt-4 flex flex-wrap gap-2">
+          <button id="export-json-btn" class="btn">Export JSON</button>
+          <button id="export-csv-btn" class="btn">Export CSV</button>
+          <button id="import-json-btn" class="btn">Import JSON</button>
+          <button id="backup-btn" class="btn">Encrypted Backup</button>
+          <button id="restore-btn" class="btn">Restore Backup</button>
+          <button id="clear-data-btn" class="btn">Clear All</button>
+        </div>
       </div>
     </section>
 
-    <!-- D) Monthly Budget (ADDED) -->
-    <section id="panel-budgets" class="space-y-3 hidden">
-      <div class="flex items-center justify-between">
-        <h3 class="text-lg font-bold">Monthly Budget</h3>
-        <button id="budget-add-row-btn" class="px-3 py-2 rounded-2xl bg-[var(--pink-400)] text-white font-bold">Add Category</button>
-      </div>
-      <div class="overflow-auto">
-        <table class="min-w-full text-sm">
-          <thead>
-            <tr class="text-left">
-              <th class="p-2">Category</th>
-              <th class="p-2">Planned</th>
-              <th class="p-2">Actual</th>
-              <th class="p-2">Difference</th>
-              <th class="p-2">Linked Paycheck</th>
-              <th class="p-2">Progress</th>
-              <th class="p-2"></th>
-            </tr>
-          </thead>
-          <tbody id="budget-tbody"></tbody>
-        </table>
+    <!-- D) Monthly Budget -->
+    <section id="panel-budgets" class="hidden">
+      <div class="card">
+        <div class="flex items-center justify-between">
+          <div class="font-semibold">Monthly Budget</div>
+          <button id="budget-add-row-btn" class="btn btn-primary">Add Budget Row</button>
+        </div>
+        <div class="overflow-x-auto mt-3">
+          <table class="w-full text-sm">
+            <thead><tr class="text-left">
+              <th class="p-2">Category</th><th class="p-2">Planned</th><th class="p-2">Actual</th><th class="p-2">Difference</th><th class="p-2">Linked Paycheck</th><th class="p-2 text-right">Actions</th>
+            </tr></thead>
+            <tbody id="budget-tbody"></tbody>
+          </table>
+        </div>
       </div>
     </section>
 
-    <!-- E) Savings & Goals (ADDED) -->
-    <section id="panel-savings" class="space-y-4 hidden">
-      <div class="flex items-center justify-between">
-        <h3 class="text-lg font-bold">Savings & Goals</h3>
-        <button id="goal-add-btn" class="px-3 py-2 rounded-2xl bg-[var(--pink-400)] text-white font-bold">Add Goal</button>
-      </div>
-      <div class="overflow-auto">
-        <table class="min-w-full text-sm">
-          <thead>
-            <tr class="text-left">
-              <th class="p-2">Name</th>
-              <th class="p-2">Target</th>
-              <th class="p-2">Current</th>
-              <th class="p-2">Target Date</th>
-              <th class="p-2">Recurring (amt / freq)</th>
-              <th class="p-2">Progress</th>
-              <th class="p-2"></th>
-            </tr>
-          </thead>
-          <tbody id="goal-tbody"></tbody>
-        </table>
-      </div>
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
-        <canvas id="savings-trend"></canvas>
-        <canvas id="goals-progress"></canvas>
+    <!-- E) Savings & Goals -->
+    <section id="panel-savings" class="hidden">
+      <div class="grid md:grid-cols-2 gap-4">
+        <div class="card">
+          <div class="flex items-center justify-between">
+            <div class="font-semibold">Savings & Goals</div>
+            <button id="goal-add-btn" class="btn btn-primary">Add Goal</button>
+          </div>
+          <div class="overflow-x-auto mt-3">
+            <table class="w-full text-sm">
+              <thead><tr class="text-left">
+                <th class="p-2">Name</th><th class="p-2">Target</th><th class="p-2">Current</th><th class="p-2">Target Date</th><th class="p-2">Recurring</th><th class="p-2 text-right">Actions</th>
+              </tr></thead>
+              <tbody id="goal-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="card">
+          <div class="grid gap-4">
+            <canvas id="savings-trend" height="160"></canvas>
+            <canvas id="goals-progress" height="160"></canvas>
+          </div>
+        </div>
       </div>
     </section>
 
     <!-- F) Live Salary Tracker -->
-    <section id="panel-salary" class="space-y-4 hidden">
-      <div class="card p-4">
-        <h3 class="font-bold text-lg mb-2">Multi-job Calendar & WorkDay Records</h3>
-        <form id="workday-form" class="grid grid-cols-1 md:grid-cols-6 gap-2">
-          <input id="wd-date" type="date" class="p-2 rounded-xl border" required />
-          <input id="wd-job" placeholder="Job (company)" class="p-2 rounded-xl border" required />
-          <input id="wd-hours" type="number" min="0" step="0.1" placeholder="Hours" class="p-2 rounded-xl border" required />
-          <input id="wd-ot" type="number" min="0" step="0.1" placeholder="Overtime" class="p-2 rounded-xl border" />
-          <input id="wd-deduct" type="number" min="0" step="0.01" placeholder="Deductions" class="p-2 rounded-xl border" />
-          <button id="workday-save-btn" class="px-3 py-2 rounded-2xl bg-[var(--pink-400)] text-white font-bold">Save</button>
-        </form>
-        <div class="text-sm opacity-80 mt-2">Formulas: hourlyRate = monthlyBase ÷ (avgWorkdays × hoursPerDay); dailyEarnings = hourlyRate × hoursWorked + overtime; paycheck = Σ(daily − deductions) per pay period</div>
-        <ul id="workday-list" class="mt-3 space-y-2 text-sm"></ul>
-      </div>
-
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
-        <div class="card p-4">
-          <h4 class="font-bold">Dual Paystub Preview</h4>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
-            <div class="p-3 bg-white border rounded-xl">
-              <div class="font-bold">Previous cutoff snapshot</div>
-              <div id="stub-prev" class="text-sm"></div>
+    <section id="panel-salary" class="hidden">
+      <div class="grid md:grid-cols-3 gap-4">
+        <div class="card md:col-span-2">
+          <div class="font-semibold mb-2">WorkDayRecord</div>
+          <form id="workday-form" class="grid md:grid-cols-6 gap-2">
+            <input id="wd-date" type="date" class="border rounded-lg px-3 py-2" required/>
+            <input id="wd-job" class="border rounded-lg px-3 py-2" placeholder="Job (company)" required/>
+            <input id="wd-hours" type="number" min="0" step="0.25" class="border rounded-lg px-3 py-2" placeholder="Hours" required/>
+            <input id="wd-ot" type="number" min="0" step="0.25" class="border rounded-lg px-3 py-2" placeholder="OT"/>
+            <input id="wd-deduct" type="number" min="0" step="0.01" class="border rounded-lg px-3 py-2" placeholder="Deductions"/>
+            <div class="col-span-6 flex gap-2">
+              <button id="workday-save-btn" class="btn btn-primary">Save</button>
+              <button id="workday-cancel-btn" type="reset" class="btn">Cancel</button>
             </div>
-            <div class="p-3 bg-white border rounded-xl">
-              <div class="font-bold">Current (live) cutoff</div>
-              <div id="stub-curr" class="text-sm"></div>
-            </div>
-          </div>
+          </form>
+          <ul id="workday-list" class="mt-3 space-y-2"></ul>
         </div>
-        <div class="card p-4">
-          <h4 class="font-bold mb-2">Finalize Paycheck</h4>
-          <div id="paycheck-expected" class="text-sm">Expected: ₱0</div>
-          <div id="paycheck-actual" class="text-sm">Actual: ₱0</div>
-          <div class="mt-2 flex gap-2">
-            <button id="paycheck-compute-btn" class="px-3 py-2 rounded-2xl border">Compute</button>
-            <button id="paycheck-sync-btn" class="px-3 py-2 rounded-2xl bg-[var(--pink-400)] text-white font-bold">Sync paycheck</button>
+        <div class="card">
+          <div class="font-semibold mb-2">Dual Paystub Preview</div>
+          <div class="text-xs opacity-70 mb-2">Pay period (bi-weekly cutoff): 1–15 → paid end of month • 16–end → paid on 15th next month</div>
+          <div id="stub-prev" class="text-sm chip mb-2">--</div>
+          <div id="stub-curr" class="text-sm chip mb-2">--</div>
+          <div id="paycheck-expected" class="font-semibold">Expected: ₱0</div>
+          <div id="paycheck-actual" class="text-sm opacity-70">Actual: ₱0</div>
+          <div class="mt-3 flex gap-2">
+            <button id="paycheck-compute-btn" class="btn">Compute</button>
+            <button id="paycheck-sync-btn" class="btn btn-primary">Sync paycheck → Dashboard & Log</button>
           </div>
         </div>
       </div>
     </section>
 
     <!-- G) Calendar & Reminders -->
-    <section id="panel-calendar" class="space-y-3 hidden">
-      <div class="flex items-center justify-between">
-        <h3 class="text-lg font-bold">Calendar & Reminders</h3>
-        <button id="event-add-btn" class="px-3 py-2 rounded-2xl bg-[var(--pink-400)] text-white font-bold">Add Event</button>
-      </div>
-      <div class="card p-4">
-        <div class="grid grid-cols-7 gap-2 text-xs font-bold opacity-70 mb-2">
-          <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
+    <section id="panel-calendar" class="hidden">
+      <div class="card">
+        <div class="font-semibold mb-2">Month view (dd/mm/yyyy)</div>
+        <div id="calendar" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-2"></div>
+        <div class="mt-3">
+          <button id="event-add-btn" class="btn btn-primary">Add Event</button>
         </div>
-        <div id="calendar" class="cal-grid"></div>
       </div>
     </section>
 
-    <!-- Reports & Analytics -->
-    <section id="panel-reports" class="space-y-3 hidden">
-      <div class="flex items-center gap-2">
-        <span class="text-sm">Aggregate:</span>
-        <div class="inline-flex bg-white rounded-2xl border overflow-hidden">
-          <button class="px-3 py-1 text-sm" id="rep-biweekly">Bi-weekly</button>
-          <button class="px-3 py-1 text-sm bg-[var(--pink-300)]" id="rep-monthly">Monthly</button>
-          <button class="px-3 py-1 text-sm" id="rep-yearly">Yearly</button>
+    <!-- Reports -->
+    <section id="panel-reports" class="hidden">
+      <div class="card">
+        <div class="flex flex-wrap items-center gap-2 justify-between">
+          <div class="font-semibold">Reports & Analytics</div>
+          <div class="flex gap-2">
+            <button id="rep-biweekly" class="btn btn-primary">Bi-weekly</button>
+            <button id="rep-monthly" class="btn">Monthly</button>
+            <button id="rep-yearly" class="btn">Yearly</button>
+          </div>
         </div>
-        <div class="ml-auto flex gap-2">
-          <button id="export-csv-btn" class="px-3 py-2 rounded-2xl border">Export CSV</button>
-          <button id="export-json-btn" class="px-3 py-2 rounded-2xl border">Export JSON</button>
+        <div class="grid md:grid-cols-3 gap-4 mt-3">
+          <canvas id="rep-income" height="160"></canvas>
+          <canvas id="rep-expenses" height="160"></canvas>
+          <canvas id="rep-savings" height="160"></canvas>
         </div>
-      </div>
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-3">
-        <canvas id="rep-income"></canvas>
-        <canvas id="rep-expenses"></canvas>
-        <canvas id="rep-savings"></canvas>
       </div>
     </section>
 
     <!-- Settings -->
-    <section id="panel-settings" class="space-y-3 hidden">
-      <div class="card p-4 grid grid-cols-1 md:grid-cols-3 gap-3">
-        <div>
-          <label class="text-xs uppercase">Currency (read-only)</label>
-          <input class="w-full mt-1 p-2 rounded-xl border bg-gray-50" value="₱ Philippine Peso" disabled />
+    <section id="panel-settings" class="hidden">
+      <div class="card">
+        <div class="font-semibold mb-2">Settings</div>
+        <div class="grid md:grid-cols-3 gap-3">
+          <label class="text-sm">Average workdays/month
+            <input id="avg-workdays" class="border rounded-lg px-3 py-2" type="number" min="15" max="26" value="22"/>
+          </label>
+          <div class="md:col-span-2 text-sm opacity-70">Currency defaults to ₱ Philippine Peso. Timezone Asia/Manila.</div>
         </div>
-        <div>
-          <label class="text-xs uppercase">Avg workdays / month</label>
-          <input id="avg-workdays" type="number" class="w-full mt-1 p-2 rounded-xl border" value="22" />
+        <div class="mt-3 flex gap-2">
+          <button id="settings-save-btn" class="btn btn-primary">Save</button>
+          <button id="settings-cancel-btn" class="btn">Cancel</button>
         </div>
-        <div class="flex items-end gap-2">
-          <button id="settings-save-btn" class="px-3 py-2 rounded-2xl bg-[var(--pink-400)] text-white font-bold">Save</button>
-          <button id="settings-cancel-btn" class="px-3 py-2 rounded-2xl border">Cancel</button>
-        </div>
-      </div>
-      <div class="card p-4 flex flex-wrap gap-2">
-        <button id="backup-btn" class="px-3 py-2 rounded-2xl border">Encrypted Backup</button>
-        <button id="restore-btn" class="px-3 py-2 rounded-2xl border">Encrypted Restore</button>
-        <button id="import-json-btn" class="px-3 py-2 rounded-2xl border">Import JSON</button>
-        <button id="clear-data-btn" class="px-3 py-2 rounded-2xl border">Clear All Data</button>
       </div>
     </section>
   </main>
 
-  <!-- HISTORY PANEL (single compact card w/ sub-tabs) -->
+  <!-- History Modal (Recent / Income / Savings / Expenses / Previous Pay / Current Pay) -->
   <div id="history-modal" class="modal">
-    <div class="card p-4 w-[min(100%,1000px)] max-h-[85vh] overflow-auto">
-      <div class="flex items-center justify-between">
-        <h3 class="text-lg font-bold">History</h3>
-        <button id="history-close-btn" class="px-3 py-2 rounded-2xl border">Close</button>
+    <div class="modal-card">
+      <div class="flex items-center justify-between mb-2">
+        <div class="font-semibold">History</div>
+        <button id="history-close-btn" class="btn">Close</button>
       </div>
-      <div class="mt-3 flex flex-wrap gap-2">
-        <button class="hist-tab px-3 py-1 rounded-2xl bg-white border" data-hist="recent" aria-selected="true">Recent</button>
-        <button class="hist-tab px-3 py-1 rounded-2xl bg-white border" data-hist="income">Income</button>
-        <button class="hist-tab px-3 py-1 rounded-2xl bg-white border" data-hist="savings">Savings</button>
-        <button class="hist-tab px-3 py-1 rounded-2xl bg-white border" data-hist="expenses">Expenses</button>
-        <button class="hist-tab px-3 py-1 rounded-2xl bg-white border" data-hist="prevpay">Previous Pay</button>
-        <button class="hist-tab px-3 py-1 rounded-2xl bg-white border" data-hist="currpay">Current Pay</button>
+      <div class="flex flex-wrap gap-2 mb-2">
+        <button class="btn hist-tab btn-primary" data-hist="recent" aria-selected="true">Recent</button>
+        <button class="btn hist-tab" data-hist="income">Income</button>
+        <button class="btn hist-tab" data-hist="savings">Savings</button>
+        <button class="btn hist-tab" data-hist="expenses">Expenses</button>
+        <button class="btn hist-tab" data-hist="prevpay">Previous Pay</button>
+        <button class="btn hist-tab" data-hist="currpay">Current Pay</button>
       </div>
-      <div id="history-views" class="mt-3 space-y-3">
-        <div id="hist-recent" class=""></div>
+      <div class="grid gap-2">
+        <div id="hist-recent"></div>
         <div id="hist-income" class="hidden"></div>
         <div id="hist-savings" class="hidden"></div>
         <div id="hist-expenses" class="hidden"></div>
@@ -432,686 +439,554 @@
     </div>
   </div>
 
-  <!-- TRANSACTION MODAL -->
-  <div id="tx-modal" class="modal">
-    <div class="card p-4 w-[min(100%,800px)]">
-      <div class="flex items-center justify-between mb-2"><h3 class="font-bold">Transaction</h3><button id="tx-cancel-btn" class="px-3 py-2 rounded-2xl border">Close</button></div>
-      <form id="tx-form" class="grid grid-cols-1 md:grid-cols-3 gap-2">
-        <input id="tx-date" type="date" class="p-2 rounded-xl border" required />
-        <input id="tx-desc" placeholder="Description" class="p-2 rounded-xl border" required />
-        <select id="tx-category" class="p-2 rounded-xl border">
-          <option>income</option><option>expense</option><option>savings</option>
-        </select>
-        <input id="tx-amount" type="number" min="0" step="0.01" placeholder="Amount" class="p-2 rounded-xl border" required />
-        <input id="tx-balance-after" type="number" step="0.01" placeholder="Balance After" class="p-2 rounded-xl border" />
-        <input id="tx-linked" placeholder="Linked Job/Bill" class="p-2 rounded-xl border" />
-        <input id="tx-notes" placeholder="Notes" class="p-2 rounded-xl border md:col-span-2" />
-        <input id="tx-tags" placeholder="Tags (comma)" class="p-2 rounded-xl border" />
-        <select id="tx-status" class="p-2 rounded-xl border"><option>planned</option><option selected>actual</option></select>
-        <div class="md:col-span-3 flex gap-2 mt-2">
-          <button id="tx-save-btn" class="px-3 py-2 rounded-2xl bg-[var(--pink-400)] text-white font-bold" type="submit">Save</button>
-          <button id="tx-delete-btn" class="px-3 py-2 rounded-2xl border" type="button">Delete</button>
+  <!-- Transaction Modal -->
+  <div id="tx-modal" class="modal" aria-hidden="true">
+    <div class="modal-card">
+      <div class="flex items-center justify-between mb-2">
+        <div class="font-semibold">Add / Edit Transaction</div>
+        <button id="tx-cancel-btn" class="btn" type="button">Cancel</button>
+      </div>
+      <form id="tx-form" class="grid md:grid-cols-2 gap-2">
+        <label class="text-sm">Date <input id="tx-date" type="date" class="border rounded-lg px-3 py-2" required/></label>
+        <label class="text-sm">Description <input id="tx-desc" class="border rounded-lg px-3 py-2" placeholder="e.g., Groceries" required/></label>
+        <label class="text-sm">Category
+          <select id="tx-category" class="border rounded-lg px-3 py-2">
+            <option>income</option><option>expense</option><option>savings</option>
+          </select>
+        </label>
+        <label class="text-sm">Amount (₱)
+          <input id="tx-amount" type="number" step="0.01" min="0" class="border rounded-lg px-3 py-2" required/>
+        </label>
+        <label class="text-sm">Balance After <input id="tx-balance-after" class="border rounded-lg px-3 py-2" placeholder="optional"/></label>
+        <label class="text-sm">Linked Job/Bill <input id="tx-linked" class="border rounded-lg px-3 py-2" placeholder="optional"/></label>
+        <label class="text-sm md:col-span-2">Notes <input id="tx-notes" class="border rounded-lg px-3 py-2" placeholder="optional"/></label>
+        <label class="text-sm">Tags <input id="tx-tags" class="border rounded-lg px-3 py-2" placeholder="e.g., food, rent"/></label>
+        <label class="text-sm">Status
+          <select id="tx-status" class="border rounded-lg px-3 py-2">
+            <option>planned</option><option selected>actual</option>
+          </select>
+        </label>
+        <div class="md:col-span-2 flex gap-2 mt-2">
+          <button id="tx-save-btn" class="btn btn-primary">Save</button>
+          <button id="tx-delete-btn" type="button" class="btn">Delete</button>
         </div>
       </form>
     </div>
   </div>
 
-  <!-- EVENT MODAL -->
+  <!-- Event Modal -->
   <div id="event-modal" class="modal">
-    <div class="card p-4 w-[min(100%,700px)]">
-      <div class="flex items-center justify-between mb-2"><h3 class="font-bold">Event / Reminder</h3><button id="event-cancel-btn" class="px-3 py-2 rounded-2xl border">Close</button></div>
-      <form id="event-form" class="grid grid-cols-1 md:grid-cols-2 gap-2">
-        <input id="event-title" placeholder="Title" class="p-2 rounded-xl border" required />
-        <input id="event-date" type="date" class="p-2 rounded-xl border" required />
-        <input id="event-notes" placeholder="Notes" class="p-2 rounded-xl border md:col-span-2" />
-        <div class="md:col-span-2 flex gap-2">
-          <button id="event-save-btn" class="px-3 py-2 rounded-2xl bg-[var(--pink-400)] text-white font-bold">Save</button>
-          <button id="event-delete-btn" class="px-3 py-2 rounded-2xl border" type="button">Delete</button>
+    <div class="modal-card">
+      <div class="flex items-center justify-between mb-2">
+        <div class="font-semibold">Event / Reminder</div>
+        <button id="event-cancel-btn" class="btn">Cancel</button>
+      </div>
+      <form id="event-form" class="grid gap-2">
+        <label class="text-sm">Title <input id="event-title" class="border rounded-lg px-3 py-2" placeholder="e.g., Payday"/></label>
+        <label class="text-sm">Date <input id="event-date" type="date" class="border rounded-lg px-3 py-2"/></label>
+        <label class="text-sm">Notes <input id="event-notes" class="border rounded-lg px-3 py-2" placeholder="optional"/></label>
+        <div class="flex gap-2">
+          <button id="event-save-btn" class="btn btn-primary">Save</button>
+          <button id="event-delete-btn" type="button" class="btn">Delete</button>
         </div>
       </form>
     </div>
   </div>
-
-  <!-- TOAST -->
-  <div id="toast" class="fixed bottom-4 left-1/2 -translate-x-1/2 px-4 py-2 rounded-2xl bg-black text-white text-sm shadow-lg hidden"></div>
 
   <script>
-  // ===== Utility & Theme =====
-  const ₱ = (n=0)=>`₱${Number(n||0).toLocaleString('en-PH',{minimumFractionDigits:0, maximumFractionDigits:2})}`;
-  const now = ()=> new Date();
-  const TZ = 'Asia/Manila';
-  const bc = new BroadcastChannel('lexi_channel');
-  const SHOW = el=>el.classList.remove('hidden');
-  const HIDE = el=>el.classList.add('hidden');
-  const toast=(msg)=>{const t=document.getElementById('toast'); t.textContent=msg; t.classList.remove('hidden'); setTimeout(()=>t.classList.add('hidden'),1600)};
-  const paw= (x,y)=>{const e=document.createElement('div'); e.className='paw'; e.style.left=`${x}px`; e.style.top=`${y}px`; e.textContent='🐾'; document.body.appendChild(e); setTimeout(()=>e.remove(),900)};
-  document.addEventListener('click',e=>paw(e.clientX,e.clientY));
+    // --- Utilities ---
+    const ₱ = n => '₱'+Number(n||0).toLocaleString('en-PH', {maximumFractionDigits:2});
+    const SHOW = el => el.classList.remove('hidden');
+    const HIDE = el => el.classList.add('hidden');
+    const uid = () => Math.random().toString(36).slice(2)+Date.now().toString(36);
 
-  // ===== Storage (IndexedDB) =====
-  const DB_NAME='lexi_db_v1';
-  let db; let historyStack=[]; let redoStack=[]; const HISTORY_LIMIT=100;
-  const openDB=()=> new Promise((resolve,reject)=>{
-    const req=indexedDB.open(DB_NAME,1);
-    req.onupgradeneeded=()=>{
-      const d=req.result;
-      if(!d.objectStoreNames.contains('state')) d.createObjectStore('state',{keyPath:'id'});
-      if(!d.objectStoreNames.contains('transactions')) d.createObjectStore('transactions',{keyPath:'id'});
-      if(!d.objectStoreNames.contains('jobs')) d.createObjectStore('jobs',{keyPath:'id'});
-      if(!d.objectStoreNames.contains('bills')) d.createObjectStore('bills',{keyPath:'id'});
-      if(!d.objectStoreNames.contains('budgets')) d.createObjectStore('budgets',{keyPath:'id'});
-      if(!d.objectStoreNames.contains('goals')) d.createObjectStore('goals',{keyPath:'id'});
-      if(!d.objectStoreNames.contains('events')) d.createObjectStore('events',{keyPath:'id'});
-      if(!d.objectStoreNames.contains('workdays')) d.createObjectStore('workdays',{keyPath:'id'});
-    };
-    req.onsuccess=()=>{db=req.result; resolve(db)};
-    req.onerror=()=>reject(req.error);
-  });
-  const txStore=(name,mode='readonly')=>db.transaction(name,mode).objectStore(name);
-  const uid=()=>Math.random().toString(36).slice(2)+Date.now().toString(36);
-
-  const saveItem=(store,item)=>new Promise((res,rej)=>{ txStore(store,'readwrite').put(item).onsuccess=()=>res(item); txStore(store,'readwrite').put(item).onerror=e=>rej(e) });
-  const delItem=(store,id)=>new Promise((res,rej)=>{ txStore(store,'readwrite').delete(id).onsuccess=()=>res(true); txStore(store,'readwrite').delete(id).onerror=e=>rej(e) });
-  const allItems=(store)=>new Promise((res,rej)=>{ const r=txStore(store).getAll(); r.onsuccess=()=>res(r.result||[]); r.onerror=e=>rej(e) });
-
-  function pushHistory(){ Promise.all([
-    allItems('transactions'), allItems('jobs'), allItems('bills'), allItems('budgets'), allItems('goals'), allItems('events'), allItems('workdays'),
-  ]).then(([transactions,jobs,bills,budgets,goals,events,workdays])=>{
-    const snap={id:uid(), ts:Date.now(), transactions,jobs,bills,budgets,goals,events,workdays};
-    historyStack.push(JSON.stringify(snap)); if(historyStack.length>HISTORY_LIMIT) historyStack.shift(); redoStack.length=0; bc.postMessage({t:'history'});
-  }); }
-  const undo=async()=>{ if(historyStack.length<2) return toast('Nothing to undo'); const curr=historyStack.pop(); redoStack.push(curr); const prev=historyStack[historyStack.length-1]; await restoreSnapshot(JSON.parse(prev)); toast('Undo'); bc.postMessage({t:'state'}); };
-  const redo=async()=>{ if(!redoStack.length) return toast('Nothing to redo'); const next=redoStack.pop(); historyStack.push(next); await restoreSnapshot(JSON.parse(next)); toast('Redo'); bc.postMessage({t:'state'}); };
-
-  async function restoreSnapshot(s){ const stores=['transactions','jobs','bills','budgets','goals','events','workdays']; await Promise.all(stores.map(st=>new Promise((resolve)=>{
-    const t=db.transaction(st,'readwrite'); const os=t.objectStore(st); const clearReq=os.clear(); clearReq.onsuccess=()=>{ (s[st]||[]).forEach(it=>os.put(it)); resolve(); };
-  }))); renderAll(); }
-
-  // ===== Global Runtime State =====
-  const runtime={ settings:{ avgWorkdays:22 }, profile:{ name:'Lexi Natividad Tamot', phone:'09619128418', email:'tamotnicko1999@gmail.com' }, aggregate:'monthly' };
-
-  // ===== Quotes =====
-  const QUOTES=[
-    "Small steps, big savings.","Every peso has a purpose.","You’re building the life you want.","Track today, thank yourself tomorrow.","Stay kind, stay consistent. 🐾"
-  ];
-  function setQuote(){ const q=QUOTES[Math.floor(Math.random()*QUOTES.length)]; document.getElementById('daily-quote').textContent=q; }
-
-  // ===== Clock / Weather / Holiday =====
-  function tickClock(){ const z=new Intl.DateTimeFormat('en-PH',{timeZone:TZ, hour:'numeric', minute:'2-digit', hour12:true}); const d=new Intl.DateTimeFormat('en-PH',{timeZone:TZ, weekday:'long', year:'numeric', month:'long', day:'numeric'}); const now=new Date(); document.getElementById('manila-clock').textContent=z.format(now); document.getElementById('manila-date').textContent=d.format(now); }
-  setInterval(tickClock,1000);
-  async function fetchWeather(){ try{ const r= await fetch('https://api.open-meteo.com/v1/forecast?latitude=7.0731&longitude=125.6128&current=temperature_2m,weather_code'); const j=await r.json(); document.getElementById('davao-weather').textContent='Weather code '+(j?.current?.weather_code ?? '—'); document.getElementById('davao-temp').textContent = `Temp: ${j?.current?.temperature_2m ?? '—'}°C`; }catch{ /* offline */ } }
-  async function fetchHoliday(){ try{ const y=new Date().getFullYear(); const r= await fetch(`https://date.nager.at/api/v3/PublicHolidays/${y}/PH`); const j=await r.json(); const today=new Date().toISOString().slice(0,10); const hit=j.find(h=>h.date===today); document.getElementById('ph-holiday').textContent=hit? hit.localName : 'No holiday today'; }catch{ /* offline */ } }
-
-  // ===== Notifications =====
-  async function ensureNotify(){ if(!('Notification' in window)) return; if(Notification.permission!=='granted'){ try{ await Notification.requestPermission(); }catch{} }
-  }
-  function scheduleNineAM(){ // in-page lightweight scheduler while app open
-    const now=new Date(); const tzNow=new Date(new Intl.DateTimeFormat('en-US',{ timeZone:TZ, hour12:false, hour:'2-digit', minute:'2-digit'}).format(now).replace(/(\d{2}):(\d{2})/,'$1:$2') );
-    // fallback: fire soon after load for due items
-    setTimeout(checkDueNotifications, 2000);
-  }
-  function notify(text){ try{ const n=new Notification('Lexi 🐾', {body:text}); document.getElementById('kitten-chime').currentTime=0; document.getElementById('kitten-chime').play(); }catch{} }
-
-  // Auto emoji mapping
-  function mapEmoji(title){ const t=title.toLowerCase(); if(/bill|due|payment/.test(t)) return '💸'; if(/salary|payday|payout/.test(t)) return '💰'; if(/birthday/.test(t)) return '🎂'; if(/meeting|interview/.test(t)) return '📅'; if(/doctor|clinic/.test(t)) return '🏥'; if(/flight|travel/.test(t)) return '✈️'; if(/anniversary/.test(t)) return '💖'; return '🐾'; }
-
-  // ===== Charts =====
-  let chartIncome, chartExpenses, chartSavings, repIncome, repExpenses, repSavings, savTrend, goalsProgress;
-  const pastel=(i)=> ['#f7c7d9','#ffd7c2','#d9c2ff','#b8f0e3','#97d6ff','#ffefc2'][i%6];
-  function setupChart(ctx,label){ return new Chart(ctx,{type:'line', data:{ labels:[], datasets:[{label,borderWidth:2, data:[]}]}, options:{responsive:true} }); }
-
-  // ===== Render Helpers (fetch from DB, compute, then draw) =====
-  async function computeSummaries(){ const [txs, goals] = await Promise.all([allItems('transactions'), allItems('goals')]); const income=txs.filter(t=>t.category==='income').reduce((a,b)=>a+Number(b.amount||0),0); const expenses=txs.filter(t=>t.category==='expense').reduce((a,b)=>a+Number(b.amount||0),0); const savings=txs.filter(t=>t.category==='savings').reduce((a,b)=>a+Number(b.amount||0),0); const bal = income - expenses - savings; const rate = income ? Math.round((savings/income)*100) : 0; document.getElementById('total-expenses').textContent=₱(expenses); document.getElementById('total-savings').textContent=₱(savings); document.getElementById('balance').textContent=₱(bal); document.getElementById('savings-rate').textContent=rate+"%";
-    // Running Monthly Income
-    const now=new Date(); const ym=now.getFullYear()+"-"+(String(now.getMonth()+1).padStart(2,'0')); const monthIncome = txs.filter(t=>t.category==='income' && (t.date||'').startsWith(ym)).reduce((a,b)=>a+Number(b.amount||0),0); document.getElementById('running-month-income').textContent=₱(monthIncome);
-    // Pay period detection (bi-weekly by default)
-    const day= now.getDate(); let start, end; if(day<=15){ start=new Date(now.getFullYear(), now.getMonth(),1); end=new Date(now.getFullYear(), now.getMonth(),15); } else { start=new Date(now.getFullYear(), now.getMonth(),16); end=new Date(now.getFullYear(), now.getMonth()+1,0); }
-    const sISO=start.toISOString().slice(0,10), eISO=end.toISOString().slice(0,10); document.getElementById('curr-pay-dates').textContent=`Dates: ${sISO} → ${eISO}`;
-    const payIncome= txs.filter(t=>t.category==='income' && t.date>=sISO && t.date<=eISO).reduce((a,b)=>a+Number(b.amount||0),0); document.getElementById('running-pay-income').textContent=₱(payIncome); document.getElementById('curr-pay-actual').textContent=`Ongoing Actual: ${₱(payIncome)}`;
-    // Previous period (simple prior window)
-    let ps, pe; if(day<=15){ ps=new Date(now.getFullYear(), now.getMonth()-1,16); pe=new Date(now.getFullYear(), now.getMonth(),0);} else { ps=new Date(now.getFullYear(), now.getMonth(),1); pe=new Date(now.getFullYear(), now.getMonth(),15); }
-    const psISO=ps.toISOString().slice(0,10), peISO=pe.toISOString().slice(0,10); document.getElementById('prev-pay-dates').textContent=`Dates: ${psISO} → ${peISO}`; const prevIncome = txs.filter(t=>t.category==='income' && t.date>=psISO && t.date<=peISO).reduce((a,b)=>a+Number(b.amount||0),0); document.getElementById('prev-pay-actual').textContent=`Actual: ${₱(prevIncome)}`; // Expected (rough from jobs)
-    const jobs= await allItems('jobs'); const expectedCurr = jobs.reduce((a,j)=> a + (j.cycle==='monthly'? Number(j.salary||0)/2 : j.cycle==='weekly'? Number(j.salary||0)*0.5 : Number(j.salary||0)/2), 0); document.getElementById('curr-pay-expected').textContent=`Expected: ${₱(expectedCurr)}`; const expectedPrev=expectedCurr; document.getElementById('prev-pay-expected').textContent=`Expected: ${₱(expectedPrev)}`; document.getElementById('prev-pay-diff').textContent=`Difference: ${₱(expectedPrev - prevIncome)}`;
-    // Next Bills / Upcoming Paychecks / Recent tx
-    const bills = await allItems('bills'); const todayISO=new Date().toISOString().slice(0,10); const next = bills.map(b=>({name:b.name, due:b.due})).sort((a,b)=>a.due-b.due).slice(0,5); document.getElementById('next-bills').innerHTML = next.map(n=>`<li class="flex items-center justify-between"><span>${n.name}</span><span class="chip ${Number(n.due)<= (new Date()).getDate()+2?'pulse':''}">Due ${String(n.due).padStart(2,'0')}</span></li>`).join('');
-    const upcoming = [{title:'Payday', date: (day<=15? new Date(now.getFullYear(), now.getMonth(), 30): new Date(now.getFullYear(), now.getMonth()+1, 15)).toISOString().slice(0,10)}]; document.getElementById('upcoming-paychecks').innerHTML = upcoming.map(u=>`<li class="flex items-center justify-between"><span>${u.title}</span><span class="chip ${ (new Date(u.date))-now < 3*86400000 ? 'pulse':''}">${u.date}</span></li>`).join('');
-    const recent = txs.sort((a,b)=>b.date.localeCompare(a.date)).slice(0,5); document.getElementById('recent-transactions').innerHTML = recent.map(t=>`<li class="flex items-center justify-between"><span>${t.date} — ${t.description}</span><span>${₱(t.amount)}</span></li>`).join('');
-  }
-
-  // ===== Render Budgets =====
-  async function renderBudgets(){ const rows = await allItems('budgets'); const txs = await allItems('transactions'); const tbody=document.getElementById('budget-tbody'); tbody.innerHTML = rows.map(r=>{ const actual = txs.filter(t=>t.category==='expense' && (t.tags||'').includes(r.category)).reduce((a,b)=>a+Number(b.amount||0),0); const diff = Number(r.planned||0)-actual; const pct = Math.min(100, Math.round(actual / (Number(r.planned||1)) * 100)); return `
-      <tr>
-        <td class="p-2">${r.category}</td>
-        <td class="p-2">${₱(r.planned)}</td>
-        <td class="p-2">${₱(actual)}</td>
-        <td class="p-2 font-semibold ${diff<0?'text-red-600':''}">${₱(diff)}</td>
-        <td class="p-2">${r.paycheck||'-'}</td>
-        <td class="p-2"><div class="w-full bg-white border rounded-xl overflow-hidden"><div class="h-2" style="width:${pct}%; background:var(--pink-500)"></div></div></td>
-        <td class="p-2 text-right"><button class="px-3 py-1 rounded-xl border" data-edit-budget="${r.id}">Edit</button> <button class="px-3 py-1 rounded-xl border" data-del-budget="${r.id}">Delete</button></td>
-      </tr>`; }).join('');
-  }
-
-  // ===== Render Savings =====
-  async function renderSavings(){ const goals = await allItems('goals'); const tbody=document.getElementById('goal-tbody'); tbody.innerHTML = goals.map(g=>{ const pct = Math.min(100, Math.round((Number(g.current||0) / (Number(g.target||1))) * 100)); return `
-      <tr>
-        <td class="p-2">${g.name}</td>
-        <td class="p-2">${₱(g.target)}</td>
-        <td class="p-2">${₱(g.current)}</td>
-        <td class="p-2">${g.date||'-'}</td>
-        <td class="p-2">${g.recurringAmt?₱(g.recurringAmt):'-'} / ${g.recurringFreq||'-'}</td>
-        <td class="p-2"><div class="w-full bg-white border rounded-xl overflow-hidden"><div class="h-2" style="width:${pct}%; background:var(--lav)"></div></div></td>
-        <td class="p-2 text-right"><button class="px-3 py-1 rounded-xl border" data-edit-goal="${g.id}">Edit</button> <button class="px-3 py-1 rounded-xl border" data-del-goal="${g.id}">Delete</button></td>
-      </tr>`; }).join('');
-    drawSavingsCharts(goals);
-  }
-  function drawSavingsCharts(goals){ const labels=goals.map(g=>g.name); const progress=goals.map(g=>Math.min(100, Math.round((Number(g.current||0) / (Number(g.target||1))) * 100))); if(!savTrend){ savTrend = new Chart(document.getElementById('savings-trend'), { type:'line', data:{ labels, datasets:[{label:'Savings Trend', data:progress}]}, options:{responsive:true}}); } else { savTrend.data.labels=labels; savTrend.data.datasets[0].data=p    if(!repIncome){ repIncome=setupChart(document.getElementById('rep-income'),'Income'); }
-    if(!repExpenses){ repExpenses=setupChart(document.getElementById('rep-expenses'),'Expenses'); }
-    if(!repSavings){ repSavings=setupChart(document.getElementById('rep-savings'),'Savings'); }
-  }
-
-  // ===== Savings Charts (finish the cut-off) =====
-  function drawSavingsCharts(goals){
-    const labels=goals.map(g=>g.name);
-    const progress=goals.map(g=>Math.min(100, Math.round((Number(g.current||0)/(Number(g.target||1)))*100)));
-    if(!savTrend){
-      savTrend=new Chart(document.getElementById('savings-trend'),{
-        type:'line',
-        data:{labels, datasets:[{label:'Savings Trend', data:progress}]},
-        options:{responsive:true}
-      });
-    }else{
-      savTrend.data.labels=labels;
-      savTrend.data.datasets[0].data=progress;
-      savTrend.update();
-    }
-    if(!goalsProgress){
-      goalsProgress=new Chart(document.getElementById('goals-progress'),{
-        type:'bar',
-        data:{labels, datasets:[{label:'% to Target', data:progress}]},
-        options:{responsive:true}
-      });
-    }else{
-      goalsProgress.data.labels=labels;
-      goalsProgress.data.datasets[0].data=progress;
-      goalsProgress.update();
-    }
-  }
-
-  // ===== Aggregation Helpers (bi-weekly / monthly / yearly) =====
-  function rangeKey(dateStr, mode){
-    const d=new Date(dateStr);
-    if(Number.isNaN(d)) return 'Unknown';
-    const y=d.getFullYear();
-    const m=String(d.getMonth()+1).padStart(2,'0');
-    const day=d.getDate();
-    if(mode==='yearly') return String(y);
-    if(mode==='biweekly'){
-      // 1–15, 16–end
-      const half = day<=15 ? 'H1' : 'H2';
-      return `${y}-${m}-${half}`;
-    }
-    // monthly
-    return `${y}-${m}`;
-  }
-  function aggregateSeries(txs, mode){
-    const agg={income:{}, expense:{}, savings:{}};
-    for(const t of txs){
-      const k=rangeKey(t.date||'', mode);
-      const cat=(t.category||'').toLowerCase();
-      if(!agg[cat]) continue;
-      agg[cat][k]=(agg[cat][k]||0)+Number(t.amount||0);
-    }
-    const allKeys=new Set([...Object.keys(agg.income), ...Object.keys(agg.expense), ...Object.keys(agg.savings)]);
-    const labels=[...allKeys].sort();
-    const series={
-      labels,
-      income:labels.map(k=>agg.income[k]||0),
-      expense:labels.map(k=>agg.expense[k]||0),
-      savings:labels.map(k=>agg.savings[k]||0),
-    };
-    return series;
-  }
-  async function updateChartsAggregate(){
-    const txs=await allItems('transactions');
-    const series=aggregateSeries(txs, runtime.aggregate);
-    if(chartIncome){
-      chartIncome.data.labels=series.labels;
-      chartIncome.data.datasets[0].data=series.income;
-      chartIncome.update();
-    }
-    if(chartExpenses){
-      chartExpenses.data.labels=series.labels;
-      chartExpenses.data.datasets[0].data=series.expense;
-      chartExpenses.update();
-    }
-    if(chartSavings){
-      chartSavings.data.labels=series.labels;
-      chartSavings.data.datasets[0].data=series.savings;
-      chartSavings.update();
-    }
-    if(repIncome){
-      repIncome.data.labels=series.labels;
-      repIncome.data.datasets[0].data=series.income;
-      repIncome.update();
-    }
-    if(repExpenses){
-      repExpenses.data.labels=series.labels;
-      repExpenses.data.datasets[0].data=series.expense;
-      repExpenses.update();
-    }
-    if(repSavings){
-      repSavings.data.labels=series.labels;
-      repSavings.data.datasets[0].data=series.savings;
-      repSavings.update();
-    }
-  }
-
-  // ===== Reports (explicit redraw) =====
-  async function drawReports(){ await updateChartsAggregate(); }
-
-  // ===== Notifications: check due bills & events =====
-  async function checkDueNotifications(){
-    const [bills, events]= await Promise.all([allItems('bills'), allItems('events')]);
-    const nowD=new Date();
-    const todayISO=nowD.toISOString().slice(0,10);
-    // Bills due within 2 days (this month)
-    const dueSoonBills=(bills||[]).filter(b=>{
-      const dueDay=Number(b.due||0);
-      if(!dueDay) return false;
-      const dueDate=new Date(nowD.getFullYear(), nowD.getMonth(), dueDay);
-      const diff=(dueDate - nowD)/86400000;
-      return diff>=0 && diff<=2;
+    // Paw particles on click
+    window.addEventListener('pointerdown', (e)=>{
+      const p=document.createElement('div'); p.className='paw';
+      p.innerHTML='🐾'; p.style.left=e.clientX+'px'; p.style.top=e.clientY+'px';
+      document.body.appendChild(p); setTimeout(()=>p.remove(), 900);
     });
-    if(dueSoonBills.length){ notify(`Bills due soon: ${dueSoonBills.map(b=>b.name).join(', ')}`); }
-    // Events today
-    const todayEvents=(events||[]).filter(e=>e.date===todayISO);
-    if(todayEvents.length){ notify(`Today: ${todayEvents.map(e=>e.title).join(', ')}`); }
-  }
 
-  // ===== Tabs Navigation =====
-  const panels=[...document.querySelectorAll('main > section')];
-  function showPanel(id){
-    panels.forEach(p=>p.id===id ? SHOW(p) : HIDE(p));
-    document.querySelectorAll('.tab-btn').forEach(b=>{
-      const on = b.dataset.panel===id;
-      b.setAttribute('aria-selected', on?'true':'false');
-    });
-    // if we switch to reports, ensure charts are ready
-    if(id==='panel-reports'){ ensureCharts(); drawReports(); }
-  }
-  document.querySelectorAll('.tab-btn').forEach(btn=>{
-    btn.addEventListener('click',()=> showPanel(btn.dataset.panel));
-  });
-  // quick "Manage" links jump
-  document.querySelectorAll('[data-panel-jump]').forEach(a=>{
-    a.addEventListener('click',e=>{ e.preventDefault(); showPanel(a.dataset.panelJump); });
-  });
+    // Quotes
+    const quotes=[
+      "Small steps, big wins. You’ve got this! 🐾",
+      "Every peso saved is a paw closer to your goal.",
+      "Track today, thank yourself tomorrow.",
+      "Consistency beats intensity — meow-tivation!"
+    ];
+    function setQuote(){
+      const q=quotes[Math.floor(Math.random()*quotes.length)];
+      document.getElementById('quote').textContent=q;
+    }
 
-  // ===== History Modal & Sub-tabs =====
-  const histModal=document.getElementById('history-modal');
-  document.getElementById('history-open-btn').addEventListener('click',()=> histModal.classList.add('active'));
-  document.getElementById('history-close-btn').addEventListener('click',()=> histModal.classList.remove('active'));
-  document.querySelectorAll('.hist-tab').forEach(btn=>{
-    btn.addEventListener('click',()=>{
-      document.querySelectorAll('.hist-tab').forEach(b=>b.setAttribute('aria-selected','false'));
-      btn.setAttribute('aria-selected','true');
-      const dest=btn.dataset.hist;
-      ['recent','income','savings','expenses','prevpay','currpay'].forEach(k=>{
-        const el=document.getElementById(`hist-${k}`);
-        k===dest ? SHOW(el) : HIDE(el);
+    // Manila clock (12h)
+    function tickClock(){
+      try{
+        const now=new Date();
+        const optsDate={timeZone:'Asia/Manila', weekday:'short', year:'numeric', month:'short', day:'numeric'};
+        const optsTime={timeZone:'Asia/Manila', hour:'numeric', minute:'2-digit', hour12:true};
+        const d=new Intl.DateTimeFormat('en-PH', optsDate).format(now);
+        const t=new Intl.DateTimeFormat('en-PH', optsTime).format(now);
+        document.getElementById('clock').textContent=`${t} • ${d}`;
+      }catch{}
+      setTimeout(tickClock, 1000);
+    }
+
+    // Weather Davao (Open-Meteo)
+    async function fetchWeather(){
+      try{
+        const r=await fetch('https://api.open-meteo.com/v1/forecast?latitude=7.1907&longitude=125.4553&current_weather=true');
+        const j=await r.json(); const cw=j.current_weather;
+        if(cw) document.getElementById('weather').textContent=`Davao: ${Math.round(cw.temperature)}°C, ${cw.weathercode}`;
+      }catch{ document.getElementById('weather').textContent='Davao Weather: offline'; }
+    }
+
+    // PH holiday (today) using Nager API
+    async function fetchHoliday(){
+      try{
+        const now=new Date();
+        const y=new Intl.DateTimeFormat('en-PH',{timeZone:'Asia/Manila', year:'numeric'}).format(now);
+        const r=await fetch(`https://date.nager.at/api/v3/PublicHolidays/${y}/PH`);
+        const j=await r.json();
+        const iso=new Date().toISOString().slice(0,10);
+        const today=j.find(h=>h.date===iso);
+        document.getElementById('holiday').textContent = 'Holiday: ' + (today ? today.localName : '—');
+      }catch{
+        document.getElementById('holiday').textContent='Holiday: offline';
+      }
+    }
+
+    // --- IndexedDB ---
+    const DB_NAME='lexi_db_v1';
+    let db;
+    function openDB(){
+      return new Promise((resolve,reject)=>{
+        const req=indexedDB.open(DB_NAME, 1);
+        req.onupgradeneeded=()=>{
+          const d=req.result;
+          const make=(name, key='id')=>{
+            if(!d.objectStoreNames.contains(name)) d.createObjectStore(name, {keyPath:key});
+          };
+          ['transactions','jobs','bills','budgets','goals','events','workdays','state'].forEach(s=>make(s));
+        };
+        req.onsuccess=()=>{ db=req.result; resolve(); };
+        req.onerror=()=>reject(req.error);
       });
+    }
+    function txStore(name, mode='readonly'){ return db.transaction(name, mode).objectStore(name); }
+    function saveItem(store, item){
+      return new Promise((res,rej)=>{
+        txStore(store,'readwrite').put(item).onsuccess=()=>res();
+      });
+    }
+    function delItem(store, id){ return new Promise(res=> txStore(store,'readwrite').delete(id).onsuccess=()=>res()); }
+    function allItems(store){
+      return new Promise((res)=>{ const arr=[]; txStore(store).openCursor().onsuccess=e=>{ const c=e.target.result; if(c){ arr.push(c.value); c.continue(); } else res(arr); }; });
+    }
+    async function restoreSnapshot(snap){
+      const names=['transactions','jobs','bills','budgets','goals','events','workdays','state'];
+      for(const n of names){
+        const t=txStore(n,'readwrite');
+        await new Promise(r=> t.clear().onsuccess=r);
+        const arr=Array.isArray(snap[n])?snap[n]:[];
+        for(const it of arr){ await new Promise(r=> t.put(it).onsuccess=r); }
+      }
+    }
+
+    // Runtime
+    const runtime={
+      aggregate:'biweekly',
+      settings:{avgWorkdays:22},
+      profile:{},
+    };
+
+    // BroadcastChannel for cross-tab sync
+    const chan = ('BroadcastChannel' in window) ? new BroadcastChannel('lexi-sync') : null;
+    chan && chan.addEventListener('message', (ev)=>{
+      if(ev.data==='render'){ renderAll(); }
+      if(ev.data?.type==='notify'){ notify(ev.data.text); }
     });
-  });
+    function broadcast(msg){ chan && chan.postMessage(msg); }
 
-  // ===== Transaction Modal Handlers =====
-  const txModal=document.getElementById('tx-modal');
-  const txForm=document.getElementById('tx-form');
-  let editingTxId=null;
-
-  function openTxModal(t){
-    editingTxId=t?.id||null;
-    txForm.reset();
-    if(t){
-      document.getElementById('tx-date').value=t.date||'';
-      document.getElementById('tx-desc').value=t.description||'';
-      document.getElementById('tx-category').value=t.category||'income';
-      document.getElementById('tx-amount').value=t.amount||'';
-      document.getElementById('tx-balance-after').value=t.balanceAfter||'';
-      document.getElementById('tx-linked').value=t.linked||'';
-      document.getElementById('tx-notes').value=t.notes||'';
-      document.getElementById('tx-tags').value=t.tags||'';
-      document.getElementById('tx-status').value=t.status||'actual';
+    // Undo / Redo (snapshots of all stores)
+    const historyStack=[]; const redoStack=[];
+    async function snapshotAll(){
+      const data={};
+      for(const s of ['transactions','jobs','bills','budgets','goals','events','workdays','state']) data[s]=await allItems(s);
+      return data;
     }
-    txModal.classList.add('active');
+    async function pushHistory(){
+      const snap=await snapshotAll();
+      historyStack.push(snap); if(historyStack.length>100) historyStack.shift();
+      redoStack.length=0; // clear
+    }
+    async function undo(){
+      if(historyStack.length<2) return;
+      const cur=historyStack.pop(); redoStack.push(cur);
+      const prev=historyStack[historyStack.length-1];
+      await restoreSnapshot(prev); renderAll(); broadcast('render');
+    }
+    async function redo(){
+      if(!redoStack.length) return;
+      const next=redoStack.pop();
+      await restoreSnapshot(next);
+      historyStack.push(next);
+      renderAll(); broadcast('render');
+    }
+
+    // Notifications
+    async function ensureNotify(){
+      try{
+        if(Notification && Notification.permission!=='granted'){ await Notification.requestPermission(); }
+      }catch{}
+    }
+    function notify(text){
+      try{
+        const a=document.getElementById('chime'); a.currentTime=0; a.play().catch(()=>{});
+        if(Notification && Notification.permission==='granted'){
+          new Notification('🐾 Lexi', { body:text, icon:'' });
+        }
+      }catch{}
+    }
+    // 9:00 AM Manila schedule (while tab open)
+    function scheduleNineAM(){
+      try{
+        const now=new Date();
+        const mnl = new Date( new Intl.DateTimeFormat('en-US', { timeZone:'Asia/Manila', hour12:false, hour:'2-digit', minute:'2-digit' }).format(now).replace(':',' ') );
+        // Simple next 9AM in local time as approximation:
+        const next = new Date(); next.setHours(9,0,0,0);
+        if(next < new Date()) next.setDate(next.getDate()+1);
+        const ms = next - new Date();
+        setTimeout(()=>{ notify('Daily reminders at 9:00 AM Manila 🐾'); scheduleNineAM(); }, Math.max(ms, 1000));
+      }catch{}
+    }
+
+    // Emoji mapping
+    function mapEmoji(title=''){
+      const t=title.toLowerCase();
+      if(/bill|due|payment/.test(t)) return '💸';
+      if(/salary|payday|payout/.test(t)) return '💰';
+      if(/birthday/.test(t)) return '🎂';
+      if(/meeting|interview/.test(t)) return '📅';
+      if(/doctor|clinic/.test(t)) return '🏥';
+      if(/flight|travel/.test(t)) return '✈️';
+      if(/anniversary/.test(t)) return '💖';
+      return '🐾';
+    }
+
+    // Toast (subtle)
+    function toast(msg){
+      const t=document.createElement('div');
+      t.className='fixed bottom-4 left-1/2 -translate-x-1/2 bg-white border border-[var(--pink-300)] rounded-full px-4 py-2 shadow';
+      t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(), 2000);
+    }
+
+    // Charts
+    let chartIncome, chartExpenses, chartSavings;
+    let repIncome, repExpenses, repSavings;
+    let savTrend, goalsProgress;
+    function setupChart(canvas, label){
+      const ctx=canvas.getContext('2d');
+      return new Chart(ctx,{ type:'line',
+        data:{ labels:[], datasets:[{ label, data:[] }] },
+        options:{ responsive:true, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true}}}
+      });
+    }
+    function ensureCharts(){
+      if(!chartIncome){ chartIncome=setupChart(document.getElementById('chart-income'),'Income'); }
+      if(!chartExpenses){ chartExpenses=setupChart(document.getElementById('chart-expenses'),'Expenses'); }
+      if(!chartSavings){ chartSavings=setupChart(document.getElementById('chart-savings'),'Savings'); }
+      if(!repIncome){ repIncome=setupChart(document.getElementById('rep-income'),'Income'); }
+      if(!repExpenses){ repExpenses=setupChart(document.getElementById('rep-expenses'),'Expenses'); }
+      if(!repSavings){ repSavings=setupChart(document.getElementById('rep-savings'),'Savings'); }
+    }
+
+    function drawSavingsCharts(goals){
+      const labels=goals.map(g=>g.name);
+      const progress=goals.map(g=>Math.min(100, Math.round((Number(g.current||0)/(Number(g.target||1)))*100)));
+      if(!savTrend){
+        savTrend=new Chart(document.getElementById('savings-trend'),{
+          type:'line', data:{labels, datasets:[{label:'Savings Trend', data:progress}]}, options:{responsive:true}
+        });
+      }else{
+        savTrend.data.labels=labels; savTrend.data.datasets[0].data=progress; savTrend.update();
+      }
+      if(!goalsProgress){
+        goalsProgress=new Chart(document.getElementById('goals-progress'),{
+          type:'bar', data:{labels, datasets:[{label:'% to Target', data:progress}]}, options:{responsive:true}
+        });
+      }else{
+        goalsProgress.data.labels=labels; goalsProgress.data.datasets[0].data=progress; goalsProgress.update();
+      }
+    }
+
+    // Aggregation helpers: bi-weekly | monthly | yearly
+    function rangeKey(dateStr, mode){
+      const d=new Date(dateStr); if(Number.isNaN(d)) return 'Unknown';
+      const y=d.getFullYear(); const m=String(d.getMonth()+1).padStart(2,'0'); const day=d.getDate();
+      if(mode==='yearly') return String(y);
+      if(mode==='biweekly') return `${y}-${m}-${(day<=15)?'H1':'H2'}`;
+      return `${y}-${m}`;
+    }
+    function aggregateSeries(txs, mode){
+      const agg={income:{}, expense:{}, savings:{}};
+      for(const t of txs){
+        const k=rangeKey(t.date||'', mode);
+        const cat=(t.category||'').toLowerCase();
+        if(!agg[cat]) continue;
+        agg[cat][k]=(agg[cat][k]||0)+Number(t.amount||0);
+      }
+      const allKeys=new Set([...Object.keys(agg.income), ...Object.keys(agg.expense), ...Object.keys(agg.savings)]);
+      const labels=[...allKeys].sort();
+      return {
+        labels,
+        income:labels.map(k=>agg.income[k]||0),
+        expense:labels.map(k=>agg.expense[k]||0),
+        savings:labels.map(k=>agg.savings[k]||0),
+      };
+    }
+    async function updateChartsAggregate(){
+      const txs=await allItems('transactions');
+      const s=aggregateSeries(txs, runtime.aggregate);
+      if(chartIncome){ chartIncome.data.labels=s.labels; chartIncome.data.datasets[0].data=s.income; chartIncome.update(); }
+      if(chartExpenses){ chartExpenses.data.labels=s.labels; chartExpenses.data.datasets[0].data=s.expense; chartExpenses.update(); }
+      if(chartSavings){ chartSavings.data.labels=s.labels; chartSavings.data.datasets[0].data=s.savings; chartSavings.update(); }
+      if(repIncome){ repIncome.data.labels=s.labels; repIncome.data.datasets[0].data=s.income; repIncome.update(); }
+      if(repExpenses){ repExpenses.data.labels=s.labels; repExpenses.data.datasets[0].data=s.expense; repExpenses.update(); }
+      if(repSavings){ repSavings.data.labels=s.labels; repSavings.data.datasets[0].data=s.savings; repSavings.update(); }
+    }
+    async function drawReports(){ await updateChartsAggregate(); }
+
+    // Compute summaries and dashboard panels
+    function inRange(date, a, b){ return date>=a && date<=b; }
+    function curCutoffs(){
+      const now=new Date(); const y=now.getFullYear(); const m=now.getMonth(); const d=now.getDate();
+      let cs,ce,ps,pe;
+      if(d<=15){ cs=new Date(y,m,1); ce=new Date(y,m,15); ps=new Date(y,m-1,16); pe=new Date(y,m,0); }
+      else { cs=new Date(y,m,16); ce=new Date(y,m+1,0); ps=new Date(y,m,1); pe=new Date(y,m,15); }
+      const iso=(dt)=>dt.toISOString().slice(0,10);
+      return {cs,ce,ps,pe, csISO:[iso(cs), iso(ce)], psISO:[iso(ps), iso(pe)]};
+    }
+    async function computeSummaries(){
+      const [txs, bills, goals]= await Promise.all([allItems('transactions'), allItems('bills'), allItems('goals')]);
+      const now=new Date(); const y=now.getFullYear(); const m=String(now.getMonth()+1).padStart(2,'0');
+      const monthPrefix=`${y}-${m}-`;
+      const monthTx=txs.filter(t=> (t.date||'').startsWith(monthPrefix));
+      const income=monthTx.filter(t=>t.category==='income').reduce((a,b)=>a+Number(b.amount||0),0);
+      const expenses=monthTx.filter(t=>t.category==='expense').reduce((a,b)=>a+Number(b.amount||0),0);
+      const savings=monthTx.filter(t=>t.category==='savings').reduce((a,b)=>a+Number(b.amount||0),0);
+      const balance=income - expenses - savings;
+      document.getElementById('mo-income').textContent=₱(income);
+      document.getElementById('total-expenses').textContent=₱(expenses);
+      document.getElementById('total-savings').textContent=₱(savings);
+      document.getElementById('balance').textContent=₱(balance);
+      document.getElementById('savings-rate').textContent = (income>0) ? Math.round((savings/income)*100)+'%' : '0%';
+
+      // Recent transactions
+      const recent=[...txs].sort((a,b)=> (b.date||'').localeCompare(a.date||'')).slice(0,5);
+      document.getElementById('recent-tx').innerHTML = recent.map(t=>`<li class="flex items-center justify-between"><span>${t.date} — ${t.description}</span><span>${₱(t.amount)}</span></li>`).join('');
+
+      // Next bills (within 2 days)
+      const today = now.getDate();
+      const monthDays = new Date(y, now.getMonth()+1, 0).getDate();
+      const billsSoon = bills
+        .map(b=>({...b, diff: ((b.due>=today)? (b.due-today) : (monthDays - today + b.due)) }))
+        .sort((a,b)=>a.diff-b.diff)
+        .slice(0,5);
+      document.getElementById('next-bills').innerHTML = billsSoon.map(b=>`<li class="chip ${b.diff<=2?'pulse':''}">${b.name}: ${₱(b.amount)} • due ${String(b.due).padStart(2,'0')}</li>`).join('');
+
+      // Upcoming paychecks (bi-weekly logical dates)
+      const {cs,ce,csISO,psISO}=curCutoffs();
+      document.getElementById('pp-curr').textContent = `Dates: ${csISO[0]} → ${csISO[1]} • Expected: computing… • Ongoing Actual: computing…`;
+      document.getElementById('pp-prev').textContent = `Dates: ${psISO[0]} → ${psISO[1]} • Expected: computing… • Actual: computing… • Diff: --`;
+
+      const actualCurr = txs.filter(t=>t.category==='income' && inRange(t.date, csISO[0], csISO[1])).reduce((a,b)=>a+Number(b.amount||0),0);
+      const actualPrev = txs.filter(t=>t.category==='income' && inRange(t.date, psISO[0], psISO[1])).reduce((a,b)=>a+Number(b.amount||0),0);
+
+      // Expected from goals recurring + rough paycheck from salary tab records later overwritten in computePaystubs
+      document.getElementById('pp-income').textContent=₱(actualCurr);
+      document.getElementById('pp-curr').textContent = `Dates: ${csISO[0]} → ${csISO[1]} • Expected: (see Salary) • Ongoing Actual: ${₱(actualCurr)}`;
+      document.getElementById('pp-prev').textContent = `Dates: ${psISO[0]} → ${psISO[1]} • Expected: (see Salary) • Actual: ${₱(actualPrev)} • Diff: --`;
+
+      // Upcoming paychecks list: show pay out dates for both cutoffs
+      const payoutPrev = new Date(psISO[1]); // previous cutoff payout rule
+      const payoutCurr = new Date(ce);       // current cutoff payout rule
+      // 1–15 → end of month; 16–end → 15th next month
+      function payoutForRange(s,e){
+        const sd=new Date(s); const ed=new Date(e);
+        if(sd.getDate()===1 && ed.getDate()===15) { // first half
+          return new Date(sd.getFullYear(), sd.getMonth()+1, 0);
+        } else { // second half
+          return new Date(sd.getFullYear(), sd.getMonth()+1, 15);
+        }
+      }
+      const poPrev = payoutForRange(psISO[0], psISO[1]).toISOString().slice(0,10);
+      const poCurr = payoutForRange(csISO[0], csISO[1]).toISOString().slice(0,10);
+      document.getElementById('upcoming-paychecks').innerHTML = [
+        `<li class="chip">Previous cutoff payout: ${poPrev}</li>`,
+        `<li class="chip">Current cutoff payout: ${poCurr}</li>`
+      ].join('');
+    }
+
+    // Budgets render
+    async function renderBudgets(){
+      const rows=await allItems('budgets'); const txs=await allItems('transactions');
+      const html=rows.map(r=>{
+        const actual = txs.filter(t=>t.category==='expense' && (t.tags||'').toLowerCase().includes((r.category||'').toLowerCase())).reduce((a,b)=>a+Number(b.amount||0),0);
+        const diff = Number(r.planned||0) - actual;
+        const pct = Math.min(100, Math.round((actual/Math.max(1, r.planned||1))*100));
+        return `<tr>
+          <td class="p-2">${r.category}</td>
+          <td class="p-2">${₱(r.planned||0)}</td>
+          <td class="p-2">${₱(actual)}</td>
+          <td class="p-2">${₱(diff)}</td>
+          <td class="p-2">${r.paycheck||''}</td>
+          <td class="p-2 text-right">
+            <div class="h-2 bg-[var(--pink-100)] rounded-full overflow-hidden mb-2"><div style="width:${pct}%" class="h-full bg-[var(--pink-400)]"></div></div>
+            <button class="btn" data-edit-budget="${r.id}">Edit</button>
+            <button class="btn" data-del-budget="${r.id}">Delete</button>
+          </td>
+        </tr>`;
+      }).join('');
+      document.getElementById('budget-tbody').innerHTML=html||`<tr><td class="p-2 text-sm" colspan="6">No budget rows yet.</td></tr>`;
+    }
+
+    // Savings & Goals render
+    async function renderSavings(){
+      const rows=await allItems('goals');
+      document.getElementById('goal-tbody').innerHTML = rows.map(g=>`
+        <tr>
+          <td class="p-2">${g.name}</td>
+          <td class="p-2">${₱(g.target||0)}</td>
+          <td class="p-2">${₱(g.current||0)}</td>
+          <td class="p-2">${g.date||''}</td>
+          <td class="p-2">${g.recurringAmt? (₱(g.recurringAmt)+' / '+(g.recurringFreq||'monthly')) : ''}</td>
+          <td class="p-2 text-right">
+            <button class="btn" data-edit-goal="${g.id}">Edit</button>
+            <button class="btn" data-del-goal="${g.id}">Delete</button>
+          </td>
+        </tr>
+      `).join('') || `<tr><td class="p-2 text-sm" colspan="6">No goals yet.</td></tr>`;
+      drawSavingsCharts(rows);
+    }
+
+    // Calendar render
+    async function renderCalendar(){
+      const el=document.getElementById('calendar');
+      const events= await allItems('events');
+      const now=new Date(); const yr=now.getFullYear(); const mo=now.getMonth();
+      const first=new Date(yr,mo,1); const last=new Date(yr,mo+1,0);
+      const startDow=first.getDay(); const days=last.getDate();
+      const cells=[]; for(let i=0;i<startDow;i++) cells.push(''); for(let d=1; d<=days; d++) cells.push(d);
+      el.innerHTML=cells.map(d=>{
+        if(!d) return `<div class="p-2 min-h-[90px] bg-[var(--pink-100)] rounded-xl border"></div>`;
+        const dateISO=`${yr}-${String(mo+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+        const dayEvents = events.filter(e=>e.date===dateISO);
+        const dueSoon = (()=>{ const dd=new Date(dateISO); const diff=(dd - now)/86400000; return diff>=0 && diff<=2; })();
+        return `<div class="p-2 min-h-[110px] bg-[var(--pink-100)] rounded-xl border ${dueSoon?'pulse':''}">
+          <div class="text-xs font-bold mb-1">${String(d).padStart(2,'0')}/${String(mo+1).padStart(2,'0')}/${yr}</div>
+          <div class="space-y-1">${dayEvents.map(e=>`<button class="chip text-xs" data
+
+
+    if(!chartSavings){ chartSavings=setupChart(document.getElementById('chart-savings'),'Savings'); }
   }
-  function closeTxModal(){ txModal.classList.remove('active'); }
-
-  document.getElementById('tx-add-btn').addEventListener('click',()=> openTxModal({date:new Date().toISOString().slice(0,10)}));
-  document.getElementById('tx-cancel-btn').addEventListener('click', closeTxModal);
-
-  txForm.addEventListener('submit', async (e)=>{
-    e.preventDefault();
-    const t={
-      id: editingTxId || uid(),
-      date: document.getElementById('tx-date').value,
-      description: document.getElementById('tx-desc').value,
-      category: document.getElementById('tx-category').value,
-      amount: Number(document.getElementById('tx-amount').value||0),
-      balanceAfter: document.getElementById('tx-balance-after').value,
-      linked: document.getElementById('tx-linked').value,
-      notes: document.getElementById('tx-notes').value,
-      tags: document.getElementById('tx-tags').value,
-      status: document.getElementById('tx-status').value
-    };
-    await saveItem('transactions', t);
-    pushHistory(); toast('Saved transaction'); closeTxModal(); renderAll();
-  });
-  document.getElementById('tx-delete-btn').addEventListener('click', async ()=>{
-    if(!editingTxId) return closeTxModal();
-    await delItem('transactions', editingTxId);
-    pushHistory(); toast('Deleted'); closeTxModal(); renderAll();
-  });
-  // table edit/delete buttons
-  document.getElementById('tx-tbody').addEventListener('click', async (e)=>{
-    const editBtn=e.target.closest('[data-edit-tx]'); const delBtn=e.target.closest('[data-del-tx]');
-    if(editBtn){
-      const id=editBtn.getAttribute('data-edit-tx');
-      const all=await allItems('transactions'); const t=all.find(x=>x.id===id);
-      openTxModal(t);
-    }else if(delBtn){
-      const id=delBtn.getAttribute('data-del-tx');
-      await delItem('transactions', id); pushHistory(); renderAll();
-    }
-  });
-  // filters live
-  ['tx-search','tx-start','tx-end','tx-category-filter','tx-tags-filter'].forEach(id=>{
-    const el=document.getElementById(id); if(el) el.addEventListener('input', renderTransactions);
-  });
-
-  // ===== Event Modal Handlers / Calendar =====
-  const eventModal=document.getElementById('event-modal');
-  const eventForm=document.getElementById('event-form');
-  let editingEventId=null;
-
-  function openEventModal(ev){
-    editingEventId=ev?.id||null;
-    eventForm.reset();
-    document.getElementById('event-title').value=ev?.title||'';
-    document.getElementById('event-date').value=ev?.date||new Date().toISOString().slice(0,10);
-    document.getElementById('event-notes').value=ev?.notes||'';
-    eventModal.classList.add('active');
-  }
-  function closeEventModal(){ eventModal.classList.remove('active'); }
-  document.getElementById('event-add-btn').addEventListener('click',()=> openEventModal());
-  document.getElementById('event-cancel-btn').addEventListener('click', closeEventModal);
-  document.getElementById('event-save-btn').addEventListener('click', async (e)=>{
-    e.preventDefault();
-    const ev={
-      id: editingEventId || uid(),
-      title: document.getElementById('event-title').value,
-      date: document.getElementById('event-date').value,
-      notes: document.getElementById('event-notes').value
-    };
-    await saveItem('events', ev); pushHistory(); toast('Saved'); closeEventModal(); renderAll();
-  });
-  document.getElementById('event-delete-btn').addEventListener('click', async ()=>{
-    if(!editingEventId) return closeEventModal();
-    await delItem('events', editingEventId); pushHistory(); toast('Deleted'); closeEventModal(); renderAll();
-  });
-  // calendar inline add/edit
-  document.getElementById('panel-calendar').addEventListener('click', async (e)=>{
-    const add=e.target.closest('[data-add-event-on]'); const edit=e.target.closest('[data-edit-event]');
-    if(add){ openEventModal({date:add.getAttribute('data-add-event-on')}); }
-    if(edit){
-      const id=edit.getAttribute('data-edit-event');
-      const evs=await allItems('events'); const ev=evs.find(x=>x.id===id);
-      openEventModal(ev);
-    }
-  });
-
-  // ===== Jobs & Bills =====
-  const jobForm=document.getElementById('job-form');
-  jobForm.addEventListener('submit', async (e)=>{
-    e.preventDefault();
-    const j={ id:uid(), company:document.getElementById('job-company').value,
-      salary:Number(document.getElementById('job-salary').value||0),
-      cycle:document.getElementById('job-cycle').value,
-      shift:document.getElementById('job-shift').value };
-    await saveItem('jobs', j); pushHistory(); jobForm.reset(); renderJobs(); renderQuickSummary(); renderWorkdays();
-  });
-  document.getElementById('job-cancel-btn').addEventListener('click', ()=> jobForm.reset());
-  document.getElementById('job-list').addEventListener('click', async (e)=>{
-    const del=e.target.closest('[data-del-job]'); const edit=e.target.closest('[data-edit-job]');
-    if(del){ await delItem('jobs', del.getAttribute('data-del-job')); pushHistory(); renderJobs(); renderQuickSummary(); renderWorkdays(); }
-    if(edit){
-      const id=edit.getAttribute('data-edit-job'); const jobs=await allItems('jobs'); const j=jobs.find(x=>x.id===id);
-      if(!j) return;
-      document.getElementById('job-company').value=j.company||''; 
-      document.getElementById('job-salary').value=j.salary||''; 
-      document.getElementById('job-cycle').value=j.cycle||'bi-weekly';
-      document.getElementById('job-shift').value=j.shift||'';
-      await delItem('jobs', id); // simple edit: re-save on submit
-    }
-  });
-
-  const billForm=document.getElementById('bill-form');
-  billForm.addEventListener('submit', async (e)=>{
-    e.preventDefault();
-    const b={ id:uid(), name:document.getElementById('bill-name').value,
-      amount:Number(document.getElementById('bill-amount').value||0),
-      due:Number(document.getElementById('bill-due').value||1),
-      auto:document.getElementById('bill-auto').checked };
-    await saveItem('bills', b); pushHistory(); billForm.reset(); renderBills(); renderQuickSummary();
-  });
-  document.getElementById('bill-cancel-btn').addEventListener('click', ()=> billForm.reset());
-  document.getElementById('bill-list').addEventListener('click', async (e)=>{
-    const del=e.target.closest('[data-del-bill]'); const edit=e.target.closest('[data-edit-bill]');
-    if(del){ await delItem('bills', del.getAttribute('data-del-bill')); pushHistory(); renderBills(); renderQuickSummary(); }
-    if(edit){
-      const id=edit.getAttribute('data-edit-bill'); const bills=await allItems('bills'); const b=bills.find(x=>x.id===id);
-      if(!b) return;
-      document.getElementById('bill-name').value=b.name||'';
-      document.getElementById('bill-amount').value=b.amount||'';
-      document.getElementById('bill-due').value=b.due||'';
-      document.getElementById('bill-auto').checked=!!b.auto;
-      await delItem('bills', id);
-    }
-  });
 
   // ===== Budgets =====
-  document.getElementById('budget-add-row-btn').addEventListener('click', async ()=>{
-    const category=prompt('Budget category (e.g., groceries)'); if(!category) return;
-    const planned=Number(prompt('Planned amount')||0);
-    const paycheck=prompt('Linked paycheck label (optional)')||'';
-    await saveItem('budgets', {id:uid(), category, planned, paycheck});
-    pushHistory(); renderBudgets();
-  });
-  document.getElementById('budget-tbody').addEventListener('click', async (e)=>{
-    const del=e.target.closest('[data-del-budget]'); const edit=e.target.closest('[data-edit-budget]');
-    if(del){ await delItem('budgets', del.getAttribute('data-del-budget')); pushHistory(); renderBudgets(); }
-    if(edit){
-      const id=edit.getAttribute('data-edit-budget'); const rows=await allItems('budgets'); const r=rows.find(x=>x.id===id); if(!r) return;
-      const category=prompt('Category', r.category)||r.category;
-      const planned=Number(prompt('Planned', r.planned)||r.planned);
-      const paycheck=prompt('Linked paycheck', r.paycheck||'')||r.paycheck||'';
-      await saveItem('budgets',{...r, id, category, planned, paycheck}); pushHistory(); renderBudgets();
-    }
-  });
-
-  // ===== Goals =====
-  document.getElementById('goal-add-btn').addEventListener('click', async ()=>{
-    const name=prompt('Goal name'); if(!name) return;
-    const target=Number(prompt('Target amount')||0);
-    const current=Number(prompt('Current amount')||0);
-    const date=prompt('Target date (YYYY-MM-DD)')||'';
-    const recurringAmt=Number(prompt('Recurring amount (optional)')||0)||null;
-    const recurringFreq=recurringAmt? (prompt('Frequency (e.g., monthly, weekly)')||'monthly') : '';
-    await saveItem('goals',{id:uid(), name, target, current, date, recurringAmt, recurringFreq});
-    pushHistory(); renderSavings();
-  });
-  document.getElementById('goal-tbody').addEventListener('click', async (e)=>{
-    const del=e.target.closest('[data-del-goal]'); const edit=e.target.closest('[data-edit-goal]');
-    if(del){ await delItem('goals', del.getAttribute('data-del-goal')); pushHistory(); renderSavings(); }
-    if(edit){
-      const id=edit.getAttribute('data-edit-goal'); const rows=await allItems('goals'); const g=rows.find(x=>x.id===id); if(!g) return;
-      const name=prompt('Name', g.name)||g.name;
-      const target=Number(prompt('Target', g.target)||g.target);
-      const current=Number(prompt('Current', g.current)||g.current);
-      const date=prompt('Target date', g.date||'')||g.date||'';
-      const recurringAmt=Number(prompt('Recurring amount', g.recurringAmt||0)||g.recurringAmt||0)||null;
-      const recurringFreq=recurringAmt? (prompt('Frequency', g.recurringFreq||'monthly')||'monthly') : '';
-      await saveItem('goals',{...g, id, name, target, current, date, recurringAmt, recurringFreq}); pushHistory(); renderSavings();
-    }
-  });
-
-  // ===== Workdays / Salary =====
-  const workdayForm=document.getElementById('workday-form');
-  workdayForm.addEventListener('submit', async (e)=>{
-    e.preventDefault();
-    const w={ id:uid(),
-      date:document.getElementById('wd-date').value,
-      job:document.getElementById('wd-job').value,
-      hours:Number(document.getElementById('wd-hours').value||0),
-      ot:Number(document.getElementById('wd-ot').value||0),
-      deduct:Number(document.getElementById('wd-deduct').value||0)};
-    await saveItem('workdays', w); pushHistory(); workdayForm.reset(); renderWorkdays();
-  });
-  document.getElementById('workday-list').addEventListener('click', async (e)=>{
-    const del=e.target.closest('[data-del-workday]'); const edit=e.target.closest('[data-edit-workday]');
-    if(del){ await delItem('workdays', del.getAttribute('data-del-workday')); pushHistory(); renderWorkdays(); }
-    if(edit){
-      const id=edit.getAttribute('data-edit-workday'); const wds=await allItems('workdays'); const w=wds.find(x=>x.id===id); if(!w) return;
-      document.getElementById('wd-date').value=w.date||'';
-      document.getElementById('wd-job').value=w.job||'';
-      document.getElementById('wd-hours').value=w.hours||'';
-      document.getElementById('wd-ot').value=w.ot||'';
-      document.getElementById('wd-deduct').value=w.deduct||'';
-      await delItem('workdays', id);
-    }
-  });
-  document.getElementById('paycheck-compute-btn').addEventListener('click', computePaystubs);
-  document.getElementById('paycheck-sync-btn').addEventListener('click', syncPaycheck);
-
-  // ===== Profile & Settings =====
-  async function loadState(){
-    try{
-      const s=await new Promise((res)=>{ const r=txStore('state').get('settings'); r.onsuccess=()=>res(r.result); r.onerror=()=>res(null); });
-      const p=await new Promise((res)=>{ const r=txStore('state').get('profile'); r.onsuccess=()=>res(r.result); r.onerror=()=>res(null); });
-      if(s && s.avgWorkdays) runtime.settings.avgWorkdays=s.avgWorkdays;
-      if(p){ runtime.profile=p; }
-      document.getElementById('avg-workdays').value=runtime.settings.avgWorkdays;
-      document.getElementById('profile-name').value=runtime.profile.name||'';
-      document.getElementById('profile-phone').value=runtime.profile.phone||'';
-      document.getElementById('profile-email').value=runtime.profile.email||'';
-    }catch{}
+  async function renderBudgets(){
+    const budgets= await allItems('budgets');
+    const txs= await allItems('transactions');
+    const tbody=document.getElementById('budget-tbody');
+    tbody.innerHTML = budgets.map(b=>{
+      const actual = txs.filter(t=>t.category===b.category).reduce((a,x)=>a+Number(x.amount||0),0);
+      const diff = (Number(b.planned||0) - actual);
+      const pct = b.planned ? Math.min(100, Math.round(actual/Number(b.planned)*100)) : 0;
+      return `<tr>
+        <td class="p-2">${b.category}</td>
+        <td class="p-2">₱${Number(b.planned||0).toLocaleString()}</td>
+        <td class="p-2">₱${actual.toLocaleString()}</td>
+        <td class="p-2">₱${diff.toLocaleString()}</td>
+        <td class="p-2"><div class="w-full bg-gray-200 rounded-xl h-2"><div class="h-2 rounded-xl bg-pink-400" style="width:${pct}%"></div></div></td>
+        <td class="p-2 text-right">
+          <button class="px-2 py-1 rounded-xl border text-xs" data-edit-budget="${b.id}">Edit</button>
+          <button class="px-2 py-1 rounded-xl border text-xs" data-del-budget="${b.id}">Delete</button>
+        </td>
+      </tr>`;
+    }).join('');
   }
-  document.getElementById('settings-save-btn').addEventListener('click', async ()=>{
-    runtime.settings.avgWorkdays=Number(document.getElementById('avg-workdays').value||22);
-    await new Promise((res)=>{ txStore('state','readwrite').put({id:'settings', ...runtime.settings}).onsuccess=res; });
-    toast('Settings saved'); computePaystubs();
-  });
-  document.getElementById('settings-cancel-btn').addEventListener('click', ()=>{ document.getElementById('avg-workdays').value=runtime.settings.avgWorkdays; });
 
-  document.getElementById('profile-save-btn').addEventListener('click', async ()=>{
-    runtime.profile={
-      name:document.getElementById('profile-name').value,
-      phone:document.getElementById('profile-phone').value,
-      email:document.getElementById('profile-email').value
-    };
-    await new Promise((res)=>{ txStore('state','readwrite').put({id:'profile', ...runtime.profile}).onsuccess=res; });
-    toast('Profile saved');
-  });
-  document.getElementById('profile-cancel-btn').addEventListener('click', ()=>{
-    document.getElementById('profile-name').value=runtime.profile.name||'';
-    document.getElementById('profile-phone').value=runtime.profile.phone||'';
-    document.getElementById('profile-email').value=runtime.profile.email||'';
-  });
-
-  // ===== Export / Import / Backup / Restore / Clear =====
-  document.getElementById('export-json-btn').addEventListener('click', exportJSON);
-  document.getElementById('export-csv-btn').addEventListener('click', exportCSV);
-  document.getElementById('backup-btn').addEventListener('click', backupEncrypted);
-  document.getElementById('restore-btn').addEventListener('click', restoreEncrypted);
-
-  document.getElementById('import-json-btn').addEventListener('click', async ()=>{
-    const inp=document.createElement('input'); inp.type='file'; inp.accept='.json,application/json';
-    inp.onchange=async ()=>{
-      try{
-        const txt=await inp.files[0].text(); const j=JSON.parse(txt);
-        if(Array.isArray(j)){ // assume array of transactions
-          for(const t of j){ await saveItem('transactions', { id: t.id||uid(), ...t}); }
-        }else if(j.transactions || j.jobs || j.bills){ // maybe a full snapshot
-          await restoreSnapshot(j);
-        }else{
-          throw new Error('Unrecognized JSON');
-        }
-        pushHistory(); toast('Imported');
-        renderAll();
-      }catch{ toast('Import failed'); }
-    };
-    inp.click();
-  });
-
-  document.getElementById('clear-data-btn').addEventListener('click', async ()=>{
-    if(!confirm('Clear ALL data? This cannot be undone.')) return;
-    const stores=['transactions','jobs','bills','budgets','goals','events','workdays','state'];
-    await Promise.all(stores.map(st=>new Promise((resolve)=>{ txStore(st,'readwrite').clear().onsuccess=resolve; })));
-    historyStack.length=0; redoStack.length=0;
-    toast('Cleared'); renderAll();
-  });
-
-  // ===== Aggregate Toggles (dashboard & reports) =====
-  function setAggregate(mode){
-    runtime.aggregate=mode;
-    document.getElementById('agg-biweekly').classList.toggle('bg-[var(--pink-300)]', mode==='biweekly');
-    document.getElementById('agg-monthly').classList.toggle('bg-[var(--pink-300)]', mode==='monthly');
-    document.getElementById('agg-yearly').classList.toggle('bg-[var(--pink-300)]', mode==='yearly');
-    document.getElementById('rep-biweekly').classList.toggle('bg-[var(--pink-300)]', mode==='biweekly');
-    document.getElementById('rep-monthly').classList.toggle('bg-[var(--pink-300)]', mode==='monthly');
-    document.getElementById('rep-yearly').classList.toggle('bg-[var(--pink-300)]', mode==='yearly');
-    updateChartsAggregate();
+  // ===== Savings & Goals =====
+  async function renderSavings(){
+    const goals= await allItems('goals');
+    const txs= await allItems('transactions');
+    const list=document.getElementById('savings-list');
+    list.innerHTML = goals.map(g=>{
+      const contrib = txs.filter(t=>t.goalId===g.id).reduce((a,x)=>a+Number(x.amount||0),0);
+      const current = contrib + Number(g.current||0);
+      const pct = g.target ? Math.min(100, Math.round(current/Number(g.target)*100)) : 0;
+      return `<li class="bg-white border rounded-xl p-3 mb-2">
+        <div class="font-bold">${g.name}</div>
+        <div class="text-xs opacity-70">Target ₱${Number(g.target).toLocaleString()} by ${g.date||''}</div>
+        <div class="mt-1">Saved: ₱${current.toLocaleString()} (${pct}%)</div>
+        <div class="w-full bg-gray-200 rounded-xl h-2 mt-1"><div class="h-2 rounded-xl bg-green-400" style="width:${pct}%"></div></div>
+        <div class="flex gap-2 mt-2">
+          <button class="px-2 py-1 rounded-xl border text-xs" data-edit-goal="${g.id}">Edit</button>
+          <button class="px-2 py-1 rounded-xl border text-xs" data-del-goal="${g.id}">Delete</button>
+        </div>
+      </li>`;
+    }).join('');
   }
-  document.getElementById('agg-biweekly').addEventListener('click', ()=> setAggregate('biweekly'));
-  document.getElementById('agg-monthly').addEventListener('click', ()=> setAggregate('monthly'));
-  document.getElementById('agg-yearly').addEventListener('click', ()=> setAggregate('yearly'));
-  document.getElementById('rep-biweekly').addEventListener('click', ()=> setAggregate('biweekly'));
-  document.getElementById('rep-monthly').addEventListener('click', ()=> setAggregate('monthly'));
-  document.getElementById('rep-yearly').addEventListener('click', ()=> setAggregate('yearly'));
 
-  // ===== Keyboard: Undo/Redo =====
-  window.addEventListener('keydown', (e)=>{
-    if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='z'){ e.preventDefault(); undo(); }
-    if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='y'){ e.preventDefault(); redo(); }
-  });
-
-  // ===== Main render =====
-  async function renderAll(){
-    setQuote(); tickClock(); fetchWeather(); fetchHoliday();
+  // ===== Render All =====
+  function renderAll(){
     ensureCharts();
-    await Promise.all([
-      computeSummaries(),
-      renderBudgets(),
-      renderSavings(),
-      renderCalendar(),
-      renderTransactions(),
-      renderJobs(),
-      renderBills(),
-      renderQuickSummary(),
-      renderWorkdays(),
-      renderHistory()
-    ]);
-    await updateChartsAggregate();
+    renderClock();
+    renderWeather();
+    renderQuote();
+    renderDashboard();
+    renderTransactions();
+    renderJobs();
+    renderBills();
+    renderQuickSummary();
+    renderWorkdays();
+    renderCalendar();
+    renderBudgets();
+    renderSavings();
+    renderHistory();
+  }
+
+  // ===== Clock, Weather, Quotes =====
+  function renderClock(){
+    setInterval(()=>{
+      const now=new Date();
+      document.getElementById('clock').textContent = now.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+      document.getElementById('date').textContent = now.toLocaleDateString('en-US',{weekday:'long', year:'numeric', month:'long', day:'numeric'});
+    },1000);
+  }
+
+  async function renderWeather(){
+    try{
+      const res= await fetch("https://api.open-meteo.com/v1/forecast?latitude=7.0731&longitude=125.6128&current_weather=true");
+      const j= await res.json();
+      document.getElementById('weather').textContent=`${j.current_weather.temperature}°C`;
+    }catch{ document.getElementById('weather').textContent="--"; }
+  }
+
+  async function renderQuote(){
+    try{
+      const res= await fetch("https://api.quotable.io/random");
+      const j= await res.json();
+      document.getElementById('quote').textContent=j.content;
+    }catch{ document.getElementById('quote').textContent="Stay positive 🐾"; }
   }
 
   // ===== Init =====
-  (async function init(){
-    await openDB();
-    await loadState();
-    showPanel('panel-dashboard');
+  window.addEventListener('load',()=>{
     renderAll();
-    ensureNotify(); scheduleNineAM();
-    pushHistory(); // initial snapshot
-  })();
-
-  </script>
+    // background refresh every 5 min
+    setInterval(renderAll, 300000);
+  });
+</script>
 </body>
 </html>
+
+
