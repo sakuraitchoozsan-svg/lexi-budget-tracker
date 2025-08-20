@@ -1,129 +1,84 @@
-// lexi-sw.js
-// Service Worker for Lexi's Budget Tracker
-// Place this file at the site root (e.g., repo root) so it registers at '/lexi-sw.js'
+// lexi-sw.js - Auto-updating Service Worker for Lexi's Budget Tracker
+// Place at repo root: /lexi-sw.js
 
-const CACHE_VERSION = 'v1.2025-08-19';
+const CACHE_VERSION = 'v2-2025-08-19';
 const CACHE_NAME = `lexi-cache-${CACHE_VERSION}`;
-
-const PRECACHE_URLS = [
-  '/', 
-  '/index.html',
-  // CDN assets used by the app (adjust versions if you change them in index.html)
+const PRECACHE = [
+  '/', '/index.html',
+  // CDN assets used in index.html - service worker will cache them on install
   'https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css',
   'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js'
 ];
 
-// Optionally add other static assets you reference (icons, images, fonts).
-// Example:
-// PRECACHE_URLS.push('/assets/logo-192.png', '/assets/icons/kitten.png');
-
-self.addEventListener('install', (event) => {
-  // Precache app shell
+// Install -> precache
+self.addEventListener('install', event => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(PRECACHE_URLS);
-    }).then(() => {
-      // Activate immediately after install
-      return self.skipWaiting();
-    })
+    caches.open(CACHE_NAME).then(cache => cache.addAll(PRECACHE)).then(() => self.skipWaiting())
   );
 });
 
-self.addEventListener('activate', (event) => {
-  // Remove old caches
+// Activate -> cleanup old caches, claim clients
+self.addEventListener('activate', event => {
   event.waitUntil(
-    caches.keys().then((keys) => {
-      return Promise.all(
-        keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))
-      );
-    }).then(() => {
-      // Take control of uncontrolled clients immediately
-      return self.clients.claim();
-    })
+    caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))))
+    .then(() => self.clients.claim())
   );
 });
 
-// Listen for messages from the page (e.g., to skipWaiting)
-self.addEventListener('message', (event) => {
-  if (!event.data) return;
-  if (event.data === 'skipWaiting') {
-    self.skipWaiting();
-  }
+// Listen to messages (allow clients to trigger skipWaiting if desired)
+self.addEventListener('message', event => {
+  if(!event.data) return;
+  if(event.data === 'skipWaiting') self.skipWaiting();
 });
 
-/**
- * Fetch strategy:
- * - Navigation requests (HTML pages): network-first, fallback to cached index.html
- * - Other static assets: cache-first, then network, then fallback to cache
- * This gives good offline behaviour while keeping pages fresh.
- */
-self.addEventListener('fetch', (event) => {
+// Fetch strategy:
+// - HTML navigation: network-first, fallback to cached index.html
+// - Other assets: cache-first with background update
+self.addEventListener('fetch', event => {
   const req = event.request;
+  if(req.method !== 'GET') return;
 
-  // Only handle GET requests
-  if (req.method !== 'GET') return;
+  const accept = req.headers.get('Accept') || '';
 
-  const acceptHeader = req.headers.get('Accept') || '';
-
-  // NAVIGATIONS: serve index.html (network-first) to support SPA & offline fallback
-  if (acceptHeader.includes('text/html')) {
+  if(accept.includes('text/html')){
     event.respondWith(
-      fetch(req)
-        .then((networkResponse) => {
-          // Put a copy in cache for offline fallback
-          caches.open(CACHE_NAME).then(cache => {
-            try { cache.put(req, networkResponse.clone()); } catch (e) { /* ignore quota errors */ }
-          });
-          return networkResponse;
-        })
-        .catch(() => {
-          // On failure (offline), return cached index.html or root
-          return caches.match('/index.html').then(cached => cached || caches.match('/'));
-        })
+      fetch(req).then(networkResp => {
+        caches.open(CACHE_NAME).then(cache => { try { cache.put(req, networkResp.clone()); } catch(e){} });
+        return networkResp;
+      }).catch(() => caches.match('/index.html').then(r => r || Promise.reject('no-cache')))
     );
     return;
   }
 
-  // For other requests (CSS/JS/images): cache-first then network
+  // For others: try cache first
   event.respondWith(
-    caches.match(req).then(cachedResp => {
-      if (cachedResp) {
-        // Also, try to update the cache in the background
+    caches.match(req).then(cached => {
+      if(cached) {
+        // update in background
         fetch(req).then(networkResp => {
-          if (networkResp && networkResp.status === 200) {
-            caches.open(CACHE_NAME).then(cache => {
-              try { cache.put(req, networkResp.clone()); } catch (e) { /* ignore */ }
-            });
+          if(networkResp && networkResp.status === 200){
+            caches.open(CACHE_NAME).then(cache => { try { cache.put(req, networkResp.clone()); } catch(e){} });
           }
-        }).catch(()=>{ /* network fail — ignore */ });
-        return cachedResp;
+        }).catch(()=>{});
+        return cached;
       }
-
-      // Not cached — fetch from network and cache it
-      return fetch(req)
-        .then(networkResponse => {
-          // Only cache valid responses
-          if (!networkResponse || networkResponse.status !== 200 || networkResponse.type === 'opaque') {
-            return networkResponse;
-          }
-          const copy = networkResponse.clone();
-          caches.open(CACHE_NAME).then(cache => {
-            try { cache.put(req, copy); } catch (e) { /* ignore quota errors */ }
-          });
-          return networkResponse;
-        })
-        .catch(() => {
-          // As final fallback, try to return index.html for navigation-like requests,
-          // or nothing for assets (could also return a placeholder image if you add one).
-          if (req.destination === 'image') {
-            // optional: return a data URI 1x1 pixel or cached placeholder if you added one
-            return new Response('', { status: 504, statusText: 'Offline' });
-          }
-          return caches.match('/index.html');
-        });
+      return fetch(req).then(networkResp => {
+        if(networkResp && networkResp.status === 200){
+          caches.open(CACHE_NAME).then(cache => { try { cache.put(req, networkResp.clone()); } catch(e){} });
+        }
+        return networkResp;
+      }).catch(() => caches.match('/index.html'));
     })
   );
 });
 
-// Optional: periodically update precache resources (you can bump CACHE_VERSION to force a refresh).
-// Tip: update CACHE_VERSION when you deploy new builds so clients fetch the new service worker and assets.
+// When a new SW becomes active, let clients know so they can refresh immediately (we also call skipWaiting in install)
+self.addEventListener('controllerchange', () => {
+  // Not all clients will be reachable here; we notify via postMessage when new SW activates
+  self.clients.matchAll().then(clients => {
+    clients.forEach(c => {
+      try { c.postMessage('reload'); } catch(e){}
+    });
+  });
+});
+
