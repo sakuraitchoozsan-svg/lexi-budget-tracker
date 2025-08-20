@@ -1,26 +1,26 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Lexi’s Budget Tracker 🐾</title>
-  <link rel="manifest" href="manifest.json"/>
+  <link rel="manifest" href="manifest.json">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    body { font-family: 'Segoe UI', sans-serif; background-color:#fff0f6; }
+    body { font-family: 'Segoe UI', sans-serif; background:#fff0f6; }
     .tab { display:none; }
     .active-tab { display:block; }
   </style>
 </head>
 <body class="text-gray-800">
   <!-- Header -->
-  <header class="bg-pink-300 text-white p-4 flex justify-between items-center">
+  <header class="bg-pink-300 text-white p-4 flex justify-between">
     <h1 class="text-xl font-bold">Lexi’s Budget Tracker 🐾</h1>
     <div>
-      <span id="clock" class="mr-2"></span>
-      <span id="date"></span>
-      <span id="weather" class="ml-2"></span>
+      <span id="clock"></span> | 
+      <span id="date"></span> | 
+      <span id="weather"></span>
     </div>
   </header>
 
@@ -44,32 +44,32 @@
   </nav>
 
   <!-- Tabs -->
-  <main class="p-4">
-    <!-- Dashboard -->
+  <main class="p-4 space-y-6">
+    <!-- A) Dashboard -->
     <section id="dashboard" class="tab active-tab">
       <h2 class="font-bold text-lg mb-2">Dashboard</h2>
       <div class="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
-        <div class="bg-white rounded-xl p-3 shadow">Running Pay Period Income: <span id="runningPayPeriod"></span></div>
-        <div class="bg-white rounded-xl p-3 shadow">Running Monthly Income: <span id="runningMonthly"></span></div>
-        <div class="bg-white rounded-xl p-3 shadow">Total Expenses: <span id="totalExpenses"></span></div>
-        <div class="bg-white rounded-xl p-3 shadow">Balance: <span id="balance"></span></div>
-        <div class="bg-white rounded-xl p-3 shadow">Savings Rate: <span id="savingsRate"></span></div>
-        <div class="bg-white rounded-xl p-3 shadow">Total Savings: <span id="totalSavings"></span></div>
+        <div class="bg-white rounded-xl p-3 shadow">Running Pay Period Income: <span id="runningPayPeriod">0</span></div>
+        <div class="bg-white rounded-xl p-3 shadow">Running Monthly Income: <span id="runningMonthly">0</span></div>
+        <div class="bg-white rounded-xl p-3 shadow">Total Expenses: <span id="totalExpenses">0</span></div>
+        <div class="bg-white rounded-xl p-3 shadow">Balance: <span id="balance">0</span></div>
+        <div class="bg-white rounded-xl p-3 shadow">Savings Rate: <span id="savingsRate">0%</span></div>
+        <div class="bg-white rounded-xl p-3 shadow">Total Savings: <span id="totalSavings">0</span></div>
       </div>
 
       <!-- Profile -->
       <div class="bg-white rounded-xl p-3 shadow mt-4">
-        <h3 class="font-bold mb-1">Profile Info</h3>
-        <p>Name: <input id="profile-name" value="Lexi Natividad Tamot" class="border rounded p-1"/></p>
-        <p>Phone: <input id="profile-phone" value="09619128418" class="border rounded p-1"/></p>
-        <p>Email: <input id="profile-email" value="tamotnicko1999@gmail.com" class="border rounded p-1"/></p>
+        <h3 class="font-bold">Profile Info</h3>
+        <input id="profile-name" value="Lexi Natividad Tamot" class="border rounded p-1 w-full my-1"/>
+        <input id="profile-phone" value="09619128418" class="border rounded p-1 w-full my-1"/>
+        <input id="profile-email" value="tamotnicko1999@gmail.com" class="border rounded p-1 w-full my-1"/>
       </div>
 
-      <!-- Pay Period Summary -->
+      <!-- Pay Period -->
       <div class="bg-white rounded-xl p-3 shadow mt-4">
         <h3 class="font-bold">Pay Period Summary</h3>
-        <div>Previous Pay Period: <span id="prevPay"></span></div>
-        <div>Current Pay Period: <span id="currPay"></span></div>
+        <div>Previous: <span id="prevPay"></span></div>
+        <div>Current: <span id="currPay"></span></div>
       </div>
 
       <!-- Charts -->
@@ -78,101 +78,154 @@
       <canvas id="chart-savings" class="mt-4"></canvas>
     </section>
 
-    <!-- Quick Setup -->
-    <section id="quick-setup" class="tab">Quick Setup content...</section>
-
-    <!-- Transactions -->
-    <section id="transactions" class="tab">Transactions content...</section>
-
-    <!-- Budgets -->
-    <section id="budgets" class="tab">
-      <h2 class="font-bold text-lg mb-2">Monthly Budget</h2>
-      <table class="w-full text-sm">
-        <thead><tr><th>Category</th><th>Planned</th><th>Actual</th><th>Diff</th><th>Progress</th><th></th></tr></thead>
-        <tbody id="budget-tbody"></tbody>
-      </table>
+    <!-- B) Quick Setup -->
+    <section id="quick-setup" class="tab">
+      <h2 class="font-bold text-lg mb-2">Quick Setup</h2>
+      <div class="bg-white p-3 rounded-xl shadow mb-4">
+        <h3 class="font-bold">Jobs</h3>
+        <input id="job-company" placeholder="Company" class="border p-1"/>
+        <input id="job-salary" placeholder="Salary" type="number" class="border p-1"/>
+        <button id="job-save-btn" class="px-2 py-1 bg-pink-400 text-white rounded">Save Job</button>
+        <ul id="job-list"></ul>
+      </div>
+      <div class="bg-white p-3 rounded-xl shadow">
+        <h3 class="font-bold">Bills</h3>
+        <input id="bill-name" placeholder="Bill name" class="border p-1"/>
+        <input id="bill-amount" placeholder="Amount" type="number" class="border p-1"/>
+        <button id="bill-save-btn" class="px-2 py-1 bg-pink-400 text-white rounded">Save Bill</button>
+        <ul id="bill-list"></ul>
+      </div>
     </section>
 
-    <!-- Savings -->
+    <!-- C) Transactions -->
+    <section id="transactions" class="tab">
+      <h2 class="font-bold text-lg mb-2">Transactions</h2>
+      <input id="tx-desc" placeholder="Description" class="border p-1"/>
+      <input id="tx-amount" type="number" placeholder="Amount" class="border p-1"/>
+      <select id="tx-cat" class="border p-1">
+        <option value="income">Income</option>
+        <option value="expense">Expense</option>
+        <option value="savings">Savings</option>
+      </select>
+      <button id="tx-save-btn" class="px-2 py-1 bg-pink-400 text-white rounded">Save Transaction</button>
+      <ul id="tx-list"></ul>
+    </section>
+
+    <!-- D) Budgets -->
+    <section id="budgets" class="tab">
+      <h2 class="font-bold text-lg mb-2">Budgets</h2>
+      <input id="budget-cat" placeholder="Category" class="border p-1"/>
+      <input id="budget-plan" type="number" placeholder="Planned" class="border p-1"/>
+      <button id="budget-save-btn" class="px-2 py-1 bg-pink-400 text-white rounded">Save Budget</button>
+      <ul id="budget-list"></ul>
+    </section>
+
+    <!-- E) Savings -->
     <section id="savings" class="tab">
       <h2 class="font-bold text-lg mb-2">Savings & Goals</h2>
-      <ul id="savings-list"></ul>
+      <input id="goal-name" placeholder="Goal Name" class="border p-1"/>
+      <input id="goal-target" type="number" placeholder="Target Amount" class="border p-1"/>
+      <button id="goal-save-btn" class="px-2 py-1 bg-pink-400 text-white rounded">Save Goal</button>
+      <ul id="goal-list"></ul>
     </section>
 
-    <!-- Salary -->
-    <section id="salary" class="tab">Salary tracker content...</section>
+    <!-- F) Salary -->
+    <section id="salary" class="tab">
+      <h2 class="font-bold text-lg mb-2">Salary Tracker</h2>
+      <input id="work-date" type="date" class="border p-1"/>
+      <input id="work-hours" type="number" placeholder="Hours" class="border p-1"/>
+      <button id="work-save-btn" class="px-2 py-1 bg-pink-400 text-white rounded">Save Workday</button>
+      <ul id="work-list"></ul>
+    </section>
 
-    <!-- Calendar -->
-    <section id="calendar" class="tab">Calendar content...</section>
+    <!-- G) Calendar -->
+    <section id="calendar" class="tab">
+      <h2 class="font-bold text-lg mb-2">Calendar</h2>
+      <input id="event-title" placeholder="Event Title" class="border p-1"/>
+      <input id="event-date" type="date" class="border p-1"/>
+      <button id="event-save-btn" class="px-2 py-1 bg-pink-400 text-white rounded">Save Event</button>
+      <ul id="event-list"></ul>
+    </section>
 
     <!-- Reports -->
-    <section id="reports" class="tab">Reports content...</section>
+    <section id="reports" class="tab"><h2>Reports</h2><p>Coming soon...</p></section>
 
     <!-- History -->
-    <section id="history" class="tab">
-      <h2 class="font-bold text-lg mb-2">History</h2>
-      <div class="flex gap-2">
-        <button>Recent</button><button>Income</button><button>Savings</button>
-        <button>Expenses</button><button>Previous Pay</button><button>Current Pay</button>
-      </div>
-      <div id="history-content" class="mt-2"></div>
-    </section>
+    <section id="history" class="tab"><h2>History</h2><div id="history-content"></div></section>
 
     <!-- Settings -->
-    <section id="settings" class="tab">Settings content...</section>
+    <section id="settings" class="tab"><h2>Settings</h2><button id="backup-btn">Backup</button><button id="restore-btn">Restore</button></section>
   </main>
 
   <!-- Scripts -->
   <script>
-    // Tab switching
+    // Tab navigation
     document.querySelectorAll("nav button").forEach(btn=>{
       btn.addEventListener("click",()=>{
-        document.querySelectorAll(".tab").forEach(tab=>tab.classList.remove("active-tab"));
+        document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active-tab"));
         document.getElementById(btn.dataset.tab).classList.add("active-tab");
       });
     });
 
     // Clock
-    function startClock(){
-      setInterval(()=>{
-        const now=new Date();
-        document.getElementById("clock").textContent = now.toLocaleTimeString("en-US",{hour:"2-digit",minute:"2-digit"});
-        document.getElementById("date").textContent = now.toLocaleDateString("en-US",{weekday:"long", year:"numeric", month:"long", day:"numeric"});
-      },1000);
-    }
+    setInterval(()=>{
+      const now=new Date();
+      document.getElementById("clock").textContent=now.toLocaleTimeString("en-US",{hour:"2-digit",minute:"2-digit"});
+      document.getElementById("date").textContent=now.toLocaleDateString("en-US",{weekday:"long", year:"numeric", month:"long", day:"numeric"});
+    },1000);
 
-    // Weather
-    async function loadWeather(){
-      try{
-        const r= await fetch("https://api.open-meteo.com/v1/forecast?latitude=7.0731&longitude=125.6128&current_weather=true");
-        const j= await r.json();
-        document.getElementById("weather").textContent = j.current_weather.temperature+"°C";
-      }catch{ document.getElementById("weather").textContent="--"; }
-    }
+    // Weather + Quote
+    async function loadWeather(){try{let r=await fetch("https://api.open-meteo.com/v1/forecast?latitude=7.0731&longitude=125.6128&current_weather=true");let j=await r.json();document.getElementById("weather").textContent=j.current_weather.temperature+"°C";}catch{}}
+    async function loadQuote(){try{let r=await fetch("https://api.quotable.io/random");let j=await r.json();document.getElementById("quote").textContent=j.content;}catch{}}
+    loadWeather(); loadQuote();
 
-    // Quote
-    async function loadQuote(){
-      try{
-        const r= await fetch("https://api.quotable.io/random");
-        const j= await r.json();
-        document.getElementById("quote").textContent=j.content;
-      }catch{ document.getElementById("quote").textContent="Stay positive 🐾"; }
-    }
+    // IndexedDB Setup
+    let db; 
+    let openReq=indexedDB.open("lexi_db_v1",1);
+    openReq.onupgradeneeded=e=>{
+      db=e.target.result;
+      db.createObjectStore("jobs",{keyPath:"id",autoIncrement:true});
+      db.createObjectStore("bills",{keyPath:"id",autoIncrement:true});
+      db.createObjectStore("transactions",{keyPath:"id",autoIncrement:true});
+      db.createObjectStore("budgets",{keyPath:"id",autoIncrement:true});
+      db.createObjectStore("goals",{keyPath:"id",autoIncrement:true});
+      db.createObjectStore("workdays",{keyPath:"id",autoIncrement:true});
+      db.createObjectStore("events",{keyPath:"id",autoIncrement:true});
+    };
+    openReq.onsuccess=e=>{db=e.target.result;};
 
-    // Charts
+    // Helper
+    function save(store,obj){let tx=db.transaction(store,"readwrite");tx.objectStore(store).add(obj);}
+    function list(store,ul){let tx=db.transaction(store,"readonly");let req=tx.objectStore(store).getAll();req.onsuccess=()=>{ul.innerHTML=req.result.map(i=>"<li>"+JSON.stringify(i)+"</li>").join("");};}
+
+    // Jobs
+    document.getElementById("job-save-btn").onclick=()=>{save("jobs",{company:job-company.value,salary:job-salary.value});list("jobs",document.getElementById("job-list"));};
+
+    // Bills
+    document.getElementById("bill-save-btn").onclick=()=>{save("bills",{name:bill-name.value,amount:bill-amount.value});list("bills",document.getElementById("bill-list"));};
+
+    // Transactions
+    document.getElementById("tx-save-btn").onclick=()=>{save("transactions",{desc:tx-desc.value,amount:tx-amount.value,cat:tx-cat.value});list("transactions",document.getElementById("tx-list"));};
+
+    // Budgets
+    document.getElementById("budget-save-btn").onclick=()=>{save("budgets",{cat:budget-cat.value,plan:budget-plan.value});list("budgets",document.getElementById("budget-list"));};
+
+    // Goals
+    document.getElementById("goal-save-btn").onclick=()=>{save("goals",{name:goal-name.value,target:goal-target.value});list("goals",document.getElementById("goal-list"));};
+
+    // Workdays
+    document.getElementById("work-save-btn").onclick=()=>{save("workdays",{date:work-date.value,hours:work-hours.value});list("workdays",document.getElementById("work-list"));};
+
+    // Events
+    document.getElementById("event-save-btn").onclick=()=>{save("events",{title:event-title.value,date:event-date.value});list("events",document.getElementById("event-list"));};
+
+    // Charts basic
     function initCharts(){
-      new Chart(document.getElementById("chart-income"),{type:"line",data:{labels:["Jan","Feb"],datasets:[{label:"Income",data:[0,0],borderColor:"#ec4899"}]}});
-      new Chart(document.getElementById("chart-expenses"),{type:"line",data:{labels:["Jan","Feb"],datasets:[{label:"Expenses",data:[0,0],borderColor:"#f87171"}]}});
-      new Chart(document.getElementById("chart-savings"),{type:"line",data:{labels:["Jan","Feb"],datasets:[{label:"Savings",data:[0,0],borderColor:"#34d399"}]}});
+      new Chart(document.getElementById("chart-income"),{type:"bar",data:{labels:["Jan","Feb"],datasets:[{label:"Income",data:[0,0],backgroundColor:"#ec4899"}]}});
+      new Chart(document.getElementById("chart-expenses"),{type:"bar",data:{labels:["Jan","Feb"],datasets:[{label:"Expenses",data:[0,0],backgroundColor:"#f87171"}]}});
+      new Chart(document.getElementById("chart-savings"),{type:"bar",data:{labels:["Jan","Feb"],datasets:[{label:"Savings",data:[0,0],backgroundColor:"#34d399"}]}});
     }
-
-    // Init
-    window.addEventListener("load",()=>{
-      startClock();
-      loadWeather();
-      loadQuote();
-      initCharts();
-    });
+    initCharts();
   </script>
 </body>
 </html>
