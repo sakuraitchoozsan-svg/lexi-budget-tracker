@@ -1,23 +1,16 @@
-// sw.js - Lexi Budget Tracker 🐾 Service Worker
-const CACHE_NAME = "lexi-budget-tracker-v1";
-const OFFLINE_URL = "/index.html"; // fallback
-
-// Files to pre-cache (adjust if needed)
+// lexi-sw.js - Service Worker for Lexi’s Budget Tracker 🐾
+const CACHE_NAME = "lexi-cache-v1";
 const PRECACHE_ASSETS = [
   "/",
   "/index.html",
-  "/sw.js",
   "/manifest.json",
-  "https://cdn.jsdelivr.net/npm/chart.js", 
-  "https://cdn.tailwindcss.com"
+  "/assets/kitten-chime.mp3"
 ];
 
 // ===== Install Event =====
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(PRECACHE_ASSETS);
-    })
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE_ASSETS))
   );
   self.skipWaiting();
 });
@@ -25,11 +18,9 @@ self.addEventListener("install", (event) => {
 // ===== Activate Event =====
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys().then((keys) => {
-      return Promise.all(
-        keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))
-      );
-    })
+    caches.keys().then((keys) =>
+      Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
+    )
   );
   self.clients.claim();
 });
@@ -40,32 +31,37 @@ self.addEventListener("fetch", (event) => {
 
   event.respondWith(
     caches.match(event.request).then((cached) => {
-      const networkFetch = fetch(event.request)
-        .then((res) => {
-          if (!res || res.status !== 200 || res.type === "opaque") {
-            return res;
-          }
-          let resClone = res.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, resClone);
-          });
-          return res;
+      const fetchPromise = fetch(event.request)
+        .then((response) => {
+          if (!response || response.status !== 200) return response;
+          const resClone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, resClone));
+          return response;
         })
-        .catch(() => {
-          // offline fallback
-          if (event.request.mode === "navigate") {
-            return caches.match(OFFLINE_URL);
-          }
-        });
+        .catch(() => cached);
 
-      return cached || networkFetch;
+      return cached || fetchPromise;
     })
   );
 });
 
-// ===== Message Listener (for skipWaiting / manual trigger) =====
-self.addEventListener("message", (event) => {
-  if (event.data && event.data.type === "SKIP_WAITING") {
-    self.skipWaiting();
+// ===== Background Sync (placeholder) =====
+self.addEventListener("sync", (event) => {
+  if (event.tag === "sync-data") {
+    event.waitUntil(self.registration.showNotification("🐾 Data synced!"));
   }
+});
+
+// ===== Notifications =====
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  event.waitUntil(
+    clients.matchAll({ type: "window" }).then((clientsArr) => {
+      if (clientsArr.length > 0) {
+        clientsArr[0].focus();
+      } else {
+        clients.openWindow("/");
+      }
+    })
+  );
 });
